@@ -185,10 +185,11 @@ def get_prices():
     return jsonify(prices)
 
 # Start background scheduler with UTC timezone
+init_db()
 scheduler = BackgroundScheduler(timezone=pytz.UTC)
 scheduler.add_job(check_prices, 'interval', seconds=60)
 scheduler.start()
 
-if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     init_db()
+#     app.run(debug=True)
