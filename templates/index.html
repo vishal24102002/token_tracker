@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Price Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .container { max-width: 800px; }
+        .form-group { margin-bottom: 15px; }
+        .table { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Token Price Tracker</h1>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-info">
+                    {% for message in messages %}
+                        {{ message }}<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('add_token') }}">
+            <div class="form-group">
+                <label for="mint_address">Token Mint Address</label>
+                <input type="text" class="form-control" id="mint_address" name="mint_address" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto_price" name="auto_price" checked>
+                    Fetch Initial Price Automatically
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="initial_price">Initial Price ($)</label>
+                <input type="number" step="0.01" class="form-control" id="initial_price" name="initial_price" required>
+            </div>
+            <div class="form-group">
+                <label for="upper_bound_pct">Upper Bound (%)</label>
+                <input type="number" step="0.1" class="form-control" id="upper_bound_pct" name="upper_bound_pct" required>
+            </div>
+            <div class="form-group">
+                <label for="lower_bound_pct">Lower Bound (%)</label>
+                <input type="number" step="0.1" class="form-control" id="lower_bound_pct" name="lower_bound_pct" required>
+            </div>
+            <div class="form-group">
+                <label for="alarm_upper">Alarm Upper Bound ($)</label>
+                <input type="number" step="0.01" class="form-control" id="alarm_upper" name="alarm_upper" required>
+            </div>
+            <div class="form-group">
+                <label for="alarm_lower">Alarm Lower Bound ($)</label>
+                <input type="number" step="0.01" class="form-control" id="alarm_lower" name="alarm_lower" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Token</button>
+        </form>
+
+        <h2>Tracked Tokens</h2>
+        {% if tokens %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Mint Address</th>
+                        <th>Initial Price</th>
+                        <th>Current Price</th>
+                        <th>Upper Bound (%)</th>
+                        <th>Lower Bound (%)</th>
+                        <th>Alarm Upper</th>
+                        <th>Alarm Lower</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for token in tokens %}
+                        <tr>
+                            <td>{{ token['mint_address'][:6] }}...</td>
+                            <td>${{ token['initial_price'] | round(2) }}</td>
+                            <td class="current-price" data-token-id="{{ token['id'] }}">Loading...</td>
+                            <td>{{ token['upper_bound_pct'] }}%</td>
+                            <td>{{ token['lower_bound_pct'] }}%</td>
+                            <td>${{ token['alarm_upper'] | round(2) }}</td>
+                            <td>${{ token['alarm_lower'] | round(2) }}</td>
+                            <td>
+                                <a href="{{ url_for('delete_token', id=token['id']) }}" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No tokens being tracked.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        function updatePrices() {
+            fetch('/get_prices')
+                .then(response => response.json())
+                .then(data => {
+                    Object.keys(data).forEach(tokenId => {
+                        const priceCell = document.querySelector(`.current-price[data-token-id="${tokenId}"]`);
+                        if (priceCell) {
+                            const price = data[tokenId];
+                            priceCell.textContent = price === "N/A" ? "N/A" : `$${parseFloat(price).toFixed(2)}`;
+                        }
+                    });
+                })
+                .catch(error => console.error('Error fetching prices:', error));
+        }
+
+        // Update prices immediately and every 60 seconds
+        updatePrices();
+        setInterval(updatePrices, 60000);
+    </script>
+</body>
+</html>
