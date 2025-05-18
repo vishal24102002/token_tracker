@@ -187,7 +187,7 @@ def get_prices():
 # Start background scheduler with UTC timezone
 init_db()
 scheduler = BackgroundScheduler(timezone=pytz.UTC)
-scheduler.add_job(check_prices, 'interval', seconds=60)
+scheduler.add_job(check_prices, 'interval', seconds=20)
 scheduler.start()
 
 # if __name__ == '__main__':
