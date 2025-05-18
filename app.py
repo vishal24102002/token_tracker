@@ -52,7 +52,7 @@ def get_token_price(mint_address):
         logger.error(f"Error fetching price for mint address {mint_address}: {e}")
         return None
 
-def   _telegram_message(message):
+def  send_telegram_message(message):
     """Send message via Telegram bot."""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
