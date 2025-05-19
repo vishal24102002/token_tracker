@@ -10,7 +10,7 @@
         .container { max-width: 800px; }
         .form-group { margin-bottom: 15px; }
         .table { margin-top: 20px; }
-        #output_mint_group { display: none; }
+        #output_mint_group, #initial_price_group { display: none; }
     </style>
 </head>
 <body>
@@ -33,8 +33,8 @@
             </div>
             <div class="form-group">
                 <label>
-                    <input type="checkbox" id="auto_price" name="auto_price" checked onchange="toggleOutputMint()">
-                    Fetch Initial Price Automatically
+                    <input type="checkbox" id="use_jupiter" name="use_jupiter" onchange="toggleOutputMint()">
+                    Use Jupiter Aggregator
                 </label>
             </div>
             <div class="form-group" id="output_mint_group">
@@ -42,8 +42,14 @@
                 <input type="text" class="form-control" id="output_mint_address" name="output_mint_address">
             </div>
             <div class="form-group">
+                <label>
+                    <input type="checkbox" id="auto_price" name="auto_price" onchange="toggleInitialPrice()">
+                    Fetch Initial Price Automatically
+                </label>
+            </div>
+            <div class="form-group" id="initial_price_group">
                 <label for="initial_price">Initial Price ($)</label>
-                <input type="number" step="0.01" class="form-control" id="initial_price" name="initial_price" required value="{{ edit_token['initial_price'] if edit_token else '' }}">
+                <input type="number" step="0.01" class="form-control" id="initial_price" name="initial_price" value="{{ edit_token['initial_price'] if edit_token else '' }}">
             </div>
             <div class="form-group">
                 <label for="upper_bound_pct">Upper Bound (%)</label>
@@ -119,31 +125,46 @@
         }
 
         function toggleOutputMint() {
-            const checked = document.getElementById('auto_price').checked;
+            const checked = document.getElementById('use_jupiter').checked;
             const outputGroup = document.getElementById('output_mint_group');
             outputGroup.style.display = checked ? 'block' : 'none';
+            fetchInitialPrice();
         }
 
-        document.getElementById('auto_price').addEventListener('change', () => {
-            if (document.getElementById('auto_price').checked) {
-                const inputMint = document.getElementById('mint_address').value;
-                const outputMint = document.getElementById('output_mint_address').value;
-                if (inputMint && outputMint) {
-                    const url = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=1000000`;
-                    fetch(url)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.data && data.data[0]) {
-                                const price = data.data[0].outAmount / 1000000;
-                                document.getElementById('initial_price').value = price.toFixed(6);
-                            }
-                        })
-                        .catch(error => console.error('Error fetching Jupiter quote:', error));
-                }
+        function toggleInitialPrice() {
+            const autoChecked = document.getElementById('auto_price').checked;
+            const group = document.getElementById('initial_price_group');
+            group.style.display = autoChecked ? 'none' : 'block';
+            if (autoChecked) fetchInitialPrice();
+        }
+
+        function fetchInitialPrice() {
+            const useJupiter = document.getElementById('use_jupiter').checked;
+            const autoChecked = document.getElementById('auto_price').checked;
+            if (!useJupiter || !autoChecked) return;
+
+            const inputMint = document.getElementById('mint_address').value;
+            const outputMint = document.getElementById('output_mint_address').value;
+            if (inputMint && outputMint) {
+                const url = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=1000000`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.data && data.data[0]) {
+                            const price = data.data[0].outAmount / 1000000;
+                            document.getElementById('initial_price').value = price.toFixed(6);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching Jupiter quote:', error));
             }
-        });
+        }
+
+        document.getElementById('use_jupiter').addEventListener('change', toggleOutputMint);
+        document.getElementById('auto_price').addEventListener('change', toggleInitialPrice);
+        document.getElementById('output_mint_address').addEventListener('blur', fetchInitialPrice);
 
         toggleOutputMint();
+        toggleInitialPrice();
         updatePrices();
         setInterval(updatePrices, 60000);
     </script>
