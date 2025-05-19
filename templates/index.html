@@ -2,119 +2,119 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Price Tracker</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { padding: 20px; }
-        .container { max-width: 800px; }
-        .form-group { margin-bottom: 15px; }
-        .table { margin-top: 20px; }
-    </style>
+    <title>Token Manager</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Token Price Tracker</h1>
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="alert alert-info">
-                    {% for message in messages %}
-                        {{ message }}<br>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
+<div class="container mt-5">
+    <h2 class="mb-4">Create New Token</h2>
+    <form method="POST" action="/create">
+        <div class="form-group">
+            <label for="name">Token Name</label>
+            <input type="text" id="name" name="name" class="form-control" required>
+        </div>
 
-        <form method="POST" action="{{ url_for('add_token') if not edit_token else url_for('update_token', id=edit_token['id']) }}">
-            <div class="form-group">
-                <label for="mint_address">Token Mint Address</label>
-                <input type="text" class="form-control" id="mint_address" name="mint_address" required value="{{ edit_token['mint_address'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="auto_price" name="auto_price" checked>
-                    Fetch Initial Price Automatically
-                </label>
-            </div>
-            <div class="form-group">
-                <label for="initial_price">Initial Price ($)</label>
-                <input type="number" step="0.01" class="form-control" id="initial_price" name="initial_price" required value="{{ edit_token['initial_price'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="upper_bound_pct">Upper Bound (%)</label>
-                <input type="number" step="0.1" class="form-control" id="upper_bound_pct" name="upper_bound_pct" required value="{{ edit_token['upper_bound_pct'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="lower_bound_pct">Lower Bound (%)</label>
-                <input type="number" step="0.1" class="form-control" id="lower_bound_pct" name="lower_bound_pct" required value="{{ edit_token['lower_bound_pct'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="alarm_upper">Alarm Upper Bound ($)</label>
-                <input type="number" step="0.01" class="form-control" id="alarm_upper" name="alarm_upper" required value="{{ edit_token['alarm_upper'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="alarm_lower">Alarm Lower Bound ($)</label>
-                <input type="number" step="0.01" class="form-control" id="alarm_lower" name="alarm_lower" required value="{{ edit_token['alarm_lower'] if edit_token else '' }}">
-            </div>
-            <button type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
-        </form>
+        <div class="form-group">
+            <label for="token_mint">Token Mint Address</label>
+            <input type="text" id="token_mint" name="token_mint" class="form-control" required>
+        </div>
 
-        <h2>Tracked Tokens</h2>
-        {% if tokens %}
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Mint Address</th>
-                        <th>Initial Price</th>
-                        <th>Current Price</th>
-                        <th>Upper Bound (%)</th>
-                        <th>Lower Bound (%)</th>
-                        <th>Alarm Upper</th>
-                        <th>Alarm Lower</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for token in tokens %}
-                        <tr>
-                            <td>{{ token['mint_address'][:6] }}...</td>
-                            <td>${{ token['initial_price'] | round(2) }}</td>
-                            <td class="current-price" data-token-id="{{ token['id'] }}">Loading...</td>
-                            <td>{{ token['upper_bound_pct'] }}%</td>
-                            <td>{{ token['lower_bound_pct'] }}%</td>
-                            <td>${{ token['alarm_upper'] | round(2) }}</td>
-                            <td>${{ token['alarm_lower'] | round(2) }}</td>
-                            <td>
-                                <a href="{{ url_for('update_token', id=token['id']) }}" class="btn btn-warning btn-sm">Edit</a>
-                                <a href="{{ url_for('delete_token', id=token['id']) }}" class="btn btn-danger btn-sm">Delete</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No tokens being tracked.</p>
-        {% endif %}
-    </div>
+        <div class="form-group">
+            <label for="tradeToken">Trade Token (input mint)</label>
+            <select id="tradeToken" name="trade_token" class="form-control" required>
+                {% for t in tokens %}
+                <option value="{{ t.token_mint }}">{{ t.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
-    <script>
-        function updatePrices() {
-            fetch('/get_prices')
-                .then(response => response.json())
-                .then(data => {
-                    Object.keys(data).forEach(tokenId => {
-                        const priceCell = document.querySelector(`.current-price[data-token-id="${tokenId}"]`);
-                        if (priceCell) {
-                            const price = data[tokenId];
-                            priceCell.textContent = price === "N/A" ? "N/A" : `$${parseFloat(price).toFixed(2)}`;
-                        }
-                    });
-                })
-                .catch(error => console.error('Error fetching prices:', error));
+        <div class="form-check mb-2">
+            <input type="checkbox" class="form-check-input" id="useJupiterPrice">
+            <label class="form-check-label" for="useJupiterPrice">Use Jupiter Aggregator Price</label>
+        </div>
+
+        <div class="form-group" id="outputMintGroup" style="display: none;">
+            <label for="outputMint">Output Token Mint Address</label>
+            <input type="text" id="outputMint" class="form-control" placeholder="Enter output token mint">
+        </div>
+
+        <div class="form-group">
+            <label for="price">Price</label>
+            <input type="number" step="any" id="price" name="price" class="form-control" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Create Token</button>
+    </form>
+
+    <hr class="my-5">
+    <h3>All Tokens</h3>
+    <table class="table table-bordered mt-3">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Mint</th>
+            <th>Trade Token</th>
+            <th>Price</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for token in tokens %}
+        <tr>
+            <td>{{ token.name }}</td>
+            <td>{{ token.token_mint }}</td>
+            <td>{{ token.trade_token }}</td>
+            <td>{{ token.price }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const useJupiterCheckbox = document.getElementById('useJupiterPrice');
+    const outputMintGroup = document.getElementById('outputMintGroup');
+    const outputMintInput = document.getElementById('outputMint');
+    const tradeTokenSelect = document.getElementById('tradeToken');
+    const priceInput = document.getElementById('price');
+
+    useJupiterCheckbox.addEventListener('change', () => {
+        if (useJupiterCheckbox.checked) {
+            outputMintGroup.style.display = 'block';
+            fetchJupiterPrice(); // Try fetching immediately
+        } else {
+            outputMintGroup.style.display = 'none';
         }
+    });
 
-        updatePrices();
-        setInterval(updatePrices, 60000);
-    </script>
+    tradeTokenSelect.addEventListener('change', () => {
+        if (useJupiterCheckbox.checked) fetchJupiterPrice();
+    });
+
+    outputMintInput.addEventListener('input', () => {
+        if (useJupiterCheckbox.checked) fetchJupiterPrice();
+    });
+
+    function fetchJupiterPrice() {
+        const inputMint = tradeTokenSelect.value;
+        const outputMint = outputMintInput.value.trim();
+        const amount = 1000000; // 1 unit in lamports (like 1 USDC)
+
+        if (!inputMint || !outputMint) return;
+
+        const url = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.data && data.data[0] && data.data[0].outAmount) {
+                    const quote = data.data[0].outAmount / 1_000_000;
+                    priceInput.value = quote.toFixed(6);
+                }
+            })
+            .catch(err => {
+                console.error('Jupiter API error:', err);
+            });
+    }
+</script>
 </body>
 </html>
