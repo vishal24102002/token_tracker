@@ -115,8 +115,55 @@ def index():
     c = conn.cursor()
     c.execute("SELECT * FROM tokens")
     tokens = c.fetchall()
+
+    edit_id = request.args.get('edit')
+    edit_token = None
+    if edit_id:
+        c.execute("SELECT * FROM tokens WHERE id = ?", (edit_id,))
+        edit_token = c.fetchone()
+
     conn.close()
-    return render_template('index.html', tokens=tokens)
+    return render_template('index.html', tokens=tokens, edit_token=edit_token)
+
+@app.route('/edit/<int:id>', methods=['POST'])
+def update_token(id):
+    """Update an existing token."""
+    try:
+        mint_address = request.form['mint_address']
+        use_auto_price = 'auto_price' in request.form
+        initial_price = float(request.form['initial_price']) if not use_auto_price else None
+        upper_bound_pct = float(request.form['upper_bound_pct'])
+        lower_bound_pct = float(request.form['lower_bound_pct'])
+        alarm_upper = float(request.form['alarm_upper'])
+        alarm_lower = float(request.form['alarm_lower'])
+
+        if use_auto_price:
+            initial_price = get_token_price(mint_address)
+            if initial_price is None:
+                flash(f"Could not fetch price for mint address {mint_address}. Please enter manually.")
+                return redirect(url_for('index', edit=id))
+
+        if alarm_lower >= initial_price or alarm_upper <= initial_price:
+            flash("Alarm bounds must be outside initial price range.")
+            return redirect(url_for('index', edit=id))
+
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute('''UPDATE tokens
+                     SET mint_address = ?, initial_price = ?, upper_bound_pct = ?, lower_bound_pct = ?,
+                         alarm_upper = ?, alarm_lower = ?, last_alert = NULL
+                     WHERE id = ?''',
+                  (mint_address, initial_price, upper_bound_pct, lower_bound_pct,
+                   alarm_upper, alarm_lower, id))
+        conn.commit()
+        conn.close()
+        flash(f"Token with mint address {mint_address[:6]}... updated successfully!")
+        return redirect(url_for('index'))
+    except Exception as e:
+        logger.error(f"Error updating token: {e}")
+        flash("Error: Could not update token. Please check the form and try again.")
+        return redirect(url_for('index', edit=id))
+
 
 @app.route('/add', methods=['POST'])
 def add_token():
