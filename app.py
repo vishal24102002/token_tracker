@@ -125,7 +125,7 @@ def index():
     conn.close()
     return render_template('index.html', tokens=tokens, edit_token=edit_token)
 
-@app.route('/edit/<int:id>', methods=['POST'])
+@app.route('/edit/<int:id>', methods=['GET','POST'])
 def update_token(id):
     """Update an existing token."""
     try:
