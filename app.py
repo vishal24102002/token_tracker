@@ -66,6 +66,36 @@ def send_telegram_message(message):
     except requests.RequestException as e:
         logger.error(f"Error sending Telegram message: {e}")
 
+@app.route('/get_jupiter_price')
+def get_jupiter_price():
+    input_mint = request.args.get('inputMint')
+    output_mint = request.args.get('outputMint')
+    amount = request.args.get('amount', '1000000')
+
+    url = f"https://quote-api.jup.ag/v6/quote?inputMint={input_mint}&outputMint={output_mint}&amount={amount}"
+
+    try:
+        response = requests.get(url, headers={'User-Agent': 'TokenPriceTracker/1.0'})
+        return jsonify(response.json())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+import requests
+
+def get_aggregator_price(input_mint, output_mint):
+    """Fetch price from Jupiter Aggregator API."""
+    amount = 1_000_000  # amount in lamports (e.g., 1 USDC = 10⁶)
+    url = f"https://quote-api.jup.ag/v6/quote?inputMint={input_mint}&outputMint={output_mint}&amount={amount}"
+    try:
+        response = requests.get(url)
+        data = response.json()
+        if 'data' in data and len(data['data']) > 0:
+            out_amount = int(data['data'][0]['outAmount'])
+            return out_amount / 1_000_000  # Convert lamports to actual token price
+    except Exception as e:
+        print(f"Aggregator API error: {e}")
+    return None
+
 def check_prices():
     """Background task to check prices and send alerts."""
     conn = get_db_connection()
@@ -75,13 +105,19 @@ def check_prices():
 
     for token in tokens:
         mint_address = token['mint_address']
+        output_mint = token['output_mint']  # New field for Jupiter output token
+        use_aggregator = token['use_aggregator']  # 1 if aggregator checkbox was ticked
         initial_price = token['initial_price']
         upper_bound_pct = token['upper_bound_pct']
         lower_bound_pct = token['lower_bound_pct']
         alarm_upper = token['alarm_upper']
         alarm_lower = token['alarm_lower']
 
-        current_price = get_token_price(mint_address)
+        if use_aggregator:
+            current_price = get_aggregator_price(mint_address, output_mint)
+        else:
+            current_price = get_token_price(mint_address)
+
         if current_price is None:
             continue
 
@@ -107,6 +143,7 @@ def check_prices():
 
         conn.commit()
     conn.close()
+
 
 @app.route('/')
 def index():
