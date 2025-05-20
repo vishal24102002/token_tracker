@@ -26,6 +26,7 @@ def init_db():
         c.execute('''CREATE TABLE tokens
                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
                       mint_address TEXT NOT NULL,
+                      output_mint TEXT,
                       initial_price REAL NOT NULL,
                       upper_bound_pct REAL NOT NULL,
                       lower_bound_pct REAL NOT NULL,
@@ -162,37 +163,37 @@ def index():
     conn.close()
     return render_template('index.html', tokens=tokens, edit_token=edit_token)
 
-@app.route('/edit/<int:id>', methods=['GET','POST'])
-def update_token(id):
-    """Update an existing token."""
+@app.route('/edit/<int:id>', methods=['GET', 'POST'])
+def edit_token(id):
+    conn = get_db_connection()
+    c = conn.cursor()
     try:
-        mint_address = request.form['mint_address']
-        use_auto_price = 'auto_price' in request.form
-        initial_price = float(request.form['initial_price']) if not use_auto_price else None
-        upper_bound_pct = float(request.form['upper_bound_pct'])
-        lower_bound_pct = float(request.form['lower_bound_pct'])
-        alarm_upper = float(request.form['alarm_upper'])
-        alarm_lower = float(request.form['alarm_lower'])
-
-        if use_auto_price:
-            initial_price = get_token_price(mint_address)
-            if initial_price is None:
-                flash(f"Could not fetch price for mint address {mint_address}. Please enter manually.")
-                return redirect(url_for('index', edit=id))
-
-        if alarm_lower >= initial_price or alarm_upper <= initial_price:
-            flash("Alarm bounds must be outside initial price range.")
-            return redirect(url_for('index', edit=id))
-
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute('''UPDATE tokens
-                     SET mint_address = ?, initial_price = ?, upper_bound_pct = ?, lower_bound_pct = ?,
-                         alarm_upper = ?, alarm_lower = ?, last_alert = NULL
-                     WHERE id = ?''',
-                  (mint_address, initial_price, upper_bound_pct, lower_bound_pct,
-                   alarm_upper, alarm_lower, id))
-        conn.commit()
+        if request.method == 'POST':
+            mint_address = request.form['mint_address']
+            output_mint = request.form.get('output_mint', '')
+            initial_price = float(request.form['initial_price'])
+            upper_bound_pct = float(request.form['upper_bound_pct'])
+            lower_bound_pct = float(request.form['lower_bound_pct'])
+            use_aggregator = 1 if 'use_aggregator' in request.form else 0
+    
+            # Recalculate alarm thresholds
+            alarm_upper = initial_price * (1 + upper_bound_pct / 100)
+            alarm_lower = initial_price * (1 - lower_bound_pct / 100)
+    
+            # Update the token in the database
+            c.execute('''UPDATE tokens
+                         SET mint_address = ?, output_mint = ?, initial_price = ?, upper_bound_pct = ?, 
+                             lower_bound_pct = ?, alarm_upper = ?, alarm_lower = ?, use_aggregator = ?
+                         WHERE id = ?''',
+                      (mint_address, output_mint, initial_price, upper_bound_pct,
+                       lower_bound_pct, alarm_upper, alarm_lower, use_aggregator, id))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('index'))
+    
+        # GET request — show form with current data
+        c.execute("SELECT * FROM tokens WHERE id = ?", (id,))
+        token = c.fetchone()
         conn.close()
         flash(f"Token with mint address {mint_address[:6]}... updated successfully!")
         return redirect(url_for('index'))
@@ -226,10 +227,18 @@ def add_token():
 
         conn = get_db_connection()
         c = conn.cursor()
-        c.execute('''INSERT INTO tokens (mint_address, initial_price, upper_bound_pct, lower_bound_pct,
-                     alarm_upper, alarm_lower)
-                     VALUES (?, ?, ?, ?, ?, ?)''',
-                     (mint_address, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower))
+        output_mint = request.form.get('output_mint', '')
+        use_aggregator = 1 if 'use_aggregator' in request.form else 0
+        ...
+        c.execute('''INSERT INTO tokens (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct,
+                     alarm_upper, alarm_lower, use_aggregator)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct,
+                   alarm_upper, alarm_lower, use_aggregator))
+        # c.execute('''INSERT INTO tokens (mint_address, initial_price, upper_bound_pct, lower_bound_pct,
+        #              alarm_upper, alarm_lower)
+        #              VALUES (?, ?, ?, ?, ?, ?)''',
+        #              (mint_address, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower))
         conn.commit()
         conn.close()
         flash(f"Token with mint address {mint_address[:6]}... added successfully!")
@@ -259,17 +268,20 @@ def get_prices():
     """Return current prices for all tracked tokens."""
     conn = get_db_connection()
     c = conn.cursor()
-    c.execute("SELECT id, mint_address FROM tokens")
+    c.execute("SELECT id, mint_address, output_mint, use_aggregator FROM tokens")
     tokens = c.fetchall()
     conn.close()
 
     prices = {}
     for token in tokens:
-        price = get_token_price(token['mint_address'])
-        prices[token['id']] = price if price is not None else "N/A"
+        if token['use_aggregator']:
+            price = get_aggregator_price(token['mint_address'], token['output_mint'])
+        else:
+            price = get_token_price(token['mint_address'])
+        prices[token['id']] = price
 
     return jsonify(prices)
-
+    
 # Start background scheduler with UTC timezone
 init_db()
 scheduler = BackgroundScheduler(timezone=pytz.UTC)
