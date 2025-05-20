@@ -11,6 +11,8 @@ import sqlite3
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
+import time
+
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -61,8 +63,9 @@ def fetch_price(mint_address, output_mint=None):
         else:
             url = f"https://api.raydium.io/v2/main/price"
             res = requests.get(url)
-            res.json()
-            return res.get(mint_address,0.0)
+            res=res.json()
+            print(res)
+            return res[mint_address]
     except Exception as e:
         logger.error(f"Price fetch error for {mint_address} (output: {output_mint}): {e}")
         return None
@@ -76,6 +79,7 @@ def send_telegram_alert(message):
         res = requests.post(url, data=payload)
         res.raise_for_status()
         logger.info(f"Telegram alert sent: {message}")
+        flash("Alert send to telegram sucessfully")
     except Exception as e:
         logger.error(f"Failed to send Telegram alert: {e}")
 
@@ -116,7 +120,8 @@ def add_token():
     mint_address = request.form['mint_address']
     output_mint = request.form.get('output_mint', '')
     auto_price = 'auto_price' in request.form
-    initial_price = request.form.get('initial_price', 0)
+    alarm_u=float(request.form['alarm_upper'])
+    alarm_l=float(request.form['alarm_lower'])
 
     if auto_price:
         initial_price = fetch_price(mint_address, output_mint)
@@ -125,24 +130,27 @@ def add_token():
             return redirect(url_for('index'))
         logger.info(f"Fetched initial price for {mint_address}: {initial_price}")
     else:
-        initial_price = float(initial_price)
+        initial_price = float(request.form.get('initial_price', 0))
 
     conn = get_db_connection()
-    conn.execute('''
-        INSERT INTO tokens (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        mint_address,
-        output_mint,
-        initial_price,
-        float(request.form['upper_bound_pct']),
-        float(request.form['lower_bound_pct']),
-        float(request.form['alarm_upper']),
-        float(request.form['alarm_lower'])
-    ))
-    conn.commit()
-    conn.close()
-    flash("Token added successfully.")
+    if initial_price>=alarm_l and initial_price<=alarm_u:
+        conn.execute('''
+            INSERT INTO tokens (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            mint_address,
+            output_mint,
+            initial_price,
+            float(request.form['upper_bound_pct']),
+            float(request.form['lower_bound_pct']),
+            alarm_u,
+            alarm_l
+        ))
+        conn.commit()
+        conn.close()
+        flash("Token added successfully.")
+    else:
+        flash(f"{alarm_u} limit should be in greater then the {initial_price} & {alarm_l} limit should be less than {initial_price}")
     return redirect(url_for('index'))
 
 @app.route('/edit/<int:id>')
@@ -221,18 +229,23 @@ def get_prices():
             output_mint = token['output_mint']
 
             if output_mint:
-                # Use Jupiter API if output_mint is specified
-                url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
-                res = requests.get(url)
-                data = res.json()
-                price = float(data['data'][0]['outAmount']) / 1000000
+                try:
+                    i=raydium_prices[mint_address]
+                    o=raydium_prices[output_mint]
+                    price = float(i/o)
+                except Exception as e:
+                    url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
+                    res = requests.get(url)
+                    data = res.json()
+                    price = float(data['data'][0]['outAmount']) / 1000000
+                    print("price from upiter agregator")
+
             else:
                 # Use Raydium prices if output_mint is not provided
                 if mint_address in raydium_prices:
                     price = float(raydium_prices[mint_address])
                 else:
                     raise ValueError("Mint address not found in Raydium price list")
-
             prices[token_id] = round(price, 6)
             logger.info(f"Price for token {token_id} fetched: {price}")
         except Exception as e:
@@ -240,7 +253,6 @@ def get_prices():
             logger.error(f"Error fetching price for token {token_id}: {e}")
 
     return jsonify(prices)
-
 
 # ------------------- Start -------------------
 
