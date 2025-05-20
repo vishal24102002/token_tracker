@@ -20,7 +20,7 @@ RAYDIUM_API = "https://api.raydium.io/v2/main/price"
 
 # Telegram Bot Config
 TELEGRAM_BOT_TOKEN = "8066450400:AAENAonrvuB7lNXnGqZbe5jdEXxF5zYiP5g"
-TELEGRAM_CHAT_ID =  "5249408527"
+TELEGRAM_CHAT_ID =  "7392913256"
 
 
 # Logging setup
