@@ -208,10 +208,25 @@ def get_prices():
     prices = {}
 
     for token in tokens:
-        price = fetch_price(token['mint_address'], token['output_mint'])
-        prices[str(token['id'])] = round(price, 6) if price else "N/A"
+        try:
+            if token['output_mint']:
+                url = f"https://quote-api.jup.ag/v6/quote?inputMint={token['mint_address']}&outputMint={token['output_mint']}&amount=1000000"
+            else:
+                url = f"https://quote-api.radium.network/v1/price/{token['mint_address']}"
+            res = requests.get(url)
+            data = res.json()
+            if token['output_mint']:
+                price = float(data['data'][0]['outAmount']) / 1000000
+            else:
+                price = float(data['price'])
+            prices[str(token['id'])] = round(price, 6)
+            logger.info(f"Price for token {token['id']} fetched: {price}")
+        except Exception as e:
+            prices[str(token['id'])] = "N/A"
+            logger.error(f"Error fetching price for token {token['id']}: {e}")
 
     return jsonify(prices)
+
 
 # ------------------- Start -------------------
 
