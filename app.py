@@ -207,23 +207,38 @@ def get_prices():
     conn.close()
     prices = {}
 
+    try:
+        # Fetch all prices from Raydium once
+        raydium_response = requests.get("https://api.raydium.io/v2/main/price")
+        raydium_prices = raydium_response.json()
+    except Exception as e:
+        raydium_prices = {}
+        logger.error(f"Failed to fetch Raydium prices: {e}")
+
     for token in tokens:
         try:
-            if token['output_mint']:
-                url = f"https://quote-api.jup.ag/v6/quote?inputMint={token['mint_address']}&outputMint={token['output_mint']}&amount=1000000"
-            else:
-                url = f"https://quote-api.radium.network/v1/price/{token['mint_address']}"
-            res = requests.get(url)
-            data = res.json()
-            if token['output_mint']:
+            token_id = str(token['id'])
+            mint_address = token['mint_address']
+            output_mint = token['output_mint']
+
+            if output_mint:
+                # Use Jupiter API if output_mint is specified
+                url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
+                res = requests.get(url)
+                data = res.json()
                 price = float(data['data'][0]['outAmount']) / 1000000
             else:
-                price = float(data['price'])
-            prices[str(token['id'])] = round(price, 6)
-            logger.info(f"Price for token {token['id']} fetched: {price}")
+                # Use Raydium prices if output_mint is not provided
+                if mint_address in raydium_prices:
+                    price = float(raydium_prices[mint_address]['price'])
+                else:
+                    raise ValueError("Mint address not found in Raydium price list")
+
+            prices[token_id] = round(price, 6)
+            logger.info(f"Price for token {token_id} fetched: {price}")
         except Exception as e:
-            prices[str(token['id'])] = "N/A"
-            logger.error(f"Error fetching price for token {token['id']}: {e}")
+            prices[token_id] = "N/A"
+            logger.error(f"Error fetching price for token {token_id}: {e}")
 
     return jsonify(prices)
 
