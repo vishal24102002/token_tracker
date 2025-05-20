@@ -230,7 +230,7 @@ def get_prices():
             else:
                 # Use Raydium prices if output_mint is not provided
                 if mint_address in raydium_prices:
-                    price = float(raydium_prices[mint_address]['price'])
+                    price = float(raydium_prices[mint_address])
                 else:
                     raise ValueError("Mint address not found in Raydium price list")
 
