@@ -59,11 +59,10 @@ def fetch_price(mint_address, output_mint=None):
             data = res.json()
             return float(data['data'][0]['outAmount']) / 1000000
         else:
-            url = f"https://api.radium.to/token/price/{mint_address}"
+            url = f"https://api.raydium.io/v2/main/price"
             res = requests.get(url)
-            res.raise_for_status()
-            data = res.json()
-            return float(data['priceUi'])
+            res.json()
+            return res.get(mint_address,0.0)
     except Exception as e:
         logger.error(f"Price fetch error for {mint_address} (output: {output_mint}): {e}")
         return None
