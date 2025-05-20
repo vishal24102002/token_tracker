@@ -16,24 +16,21 @@ app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 RAYDIUM_API = "https://api.raydium.io/v2/main/price"
 
-
-# Logger setup
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
-
 # Telegram Bot Config
 TELEGRAM_BOT_TOKEN = "8066450400:AAENAonrvuB7lNXnGqZbe5jdEXxF5zYiP5g"
 TELEGRAM_CHAT_ID =  "5249408527"
 
+
+# Logging setup
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ------------------- Database -------------------
+
 def get_db_connection():
-    return sqlite3.connect('tokens.db', detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+    conn = sqlite3.connect('tokens.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_db():
     with get_db_connection() as conn:
@@ -51,183 +48,180 @@ def init_db():
         ''')
     logger.info("Database initialized.")
 
-@app.route('/')
-def index():
-    with get_db_connection() as conn:
-        conn.row_factory = sqlite3.Row
-        tokens = conn.execute('SELECT * FROM tokens').fetchall()
-    return render_template('index.html', tokens=tokens, edit_token=None)
+# ------------------- Helper: Price Fetching -------------------
 
-@app.route('/add', methods=['POST'])
-def add_token():
+def fetch_price(mint_address, output_mint=None):
     try:
-        mint_address = request.form['mint_address']
-        output_mint = request.form.get('output_mint', '')
-        auto_price = 'auto_price' in request.form
-        initial_price = request.form.get('initial_price', 0)
-
-        if auto_price:
+        if output_mint:
             url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
             res = requests.get(url)
+            res.raise_for_status()
             data = res.json()
-            initial_price = float(data['data'][0]['outAmount']) / 1000000
-            logger.info(f"Auto-fetched price for {mint_address}: {initial_price}")
+            return float(data['data'][0]['outAmount']) / 1000000
         else:
-            initial_price = float(initial_price)
-
-        with get_db_connection() as conn:
-            conn.execute('''
-                INSERT INTO tokens (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                mint_address,
-                output_mint,
-                initial_price,
-                float(request.form['upper_bound_pct']),
-                float(request.form['lower_bound_pct']),
-                float(request.form['alarm_upper']),
-                float(request.form['alarm_lower'])
-            ))
-            conn.commit()
-
-        logger.info(f"Token added: {mint_address}")
-        flash("Token added successfully.")
-    except Exception as e:
-        logger.error(f"Error adding token: {e}")
-        flash("Failed to add token.")
-    return redirect(url_for('index'))
-
-@app.route('/edit/<int:id>')
-def edit_token(id):
-    with get_db_connection() as conn:
-        conn.row_factory = sqlite3.Row
-        token = conn.execute('SELECT * FROM tokens WHERE id = ?', (id,)).fetchone()
-        tokens = conn.execute('SELECT * FROM tokens').fetchall()
-    return render_template('index.html', edit_token=token, tokens=tokens)
-
-@app.route('/update/<int:id>', methods=['POST'])
-def update_token(id):
-    try:
-        mint_address = request.form['mint_address']
-        output_mint = request.form.get('output_mint', '')
-        auto_price = 'auto_price' in request.form
-        initial_price = request.form.get('initial_price', 0)
-
-        if auto_price:
-            url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
+            url = f"https://api.radium.to/token/price/{mint_address}"
             res = requests.get(url)
+            res.raise_for_status()
             data = res.json()
-            initial_price = float(data['data'][0]['outAmount']) / 1000000
-            logger.info(f"Auto-updated price for {mint_address}: {initial_price}")
-        else:
-            initial_price = float(initial_price)
-
-        with get_db_connection() as conn:
-            conn.execute('''
-                UPDATE tokens SET
-                    mint_address = ?, output_mint = ?, initial_price = ?, upper_bound_pct = ?,
-                    lower_bound_pct = ?, alarm_upper = ?, alarm_lower = ?
-                WHERE id = ?
-            ''', (
-                mint_address,
-                output_mint,
-                initial_price,
-                float(request.form['upper_bound_pct']),
-                float(request.form['lower_bound_pct']),
-                float(request.form['alarm_upper']),
-                float(request.form['alarm_lower']),
-                id
-            ))
-            conn.commit()
-
-        logger.info(f"Token updated: ID {id} - {mint_address}")
-        flash("Token updated successfully.")
+            return float(data['priceUi'])
     except Exception as e:
-        logger.error(f"Error updating token: {e}")
-        flash("Failed to update token.")
-    return redirect(url_for('index'))
+        logger.error(f"Price fetch error for {mint_address} (output: {output_mint}): {e}")
+        return None
 
-@app.route('/delete/<int:id>')
-def delete_token(id):
-    try:
-        with get_db_connection() as conn:
-            conn.execute('DELETE FROM tokens WHERE id = ?', (id,))
-            conn.commit()
-        logger.info(f"Token deleted: ID {id}")
-        flash("Token deleted.")
-    except Exception as e:
-        logger.error(f"Error deleting token ID {id}: {e}")
-        flash("Failed to delete token.")
-    return redirect(url_for('index'))
+# ------------------- Helper: Telegram -------------------
 
-@app.route('/get_prices')
-def get_prices():
-    prices = {}
-    try:
-        with get_db_connection() as conn:
-            conn.row_factory = sqlite3.Row
-            tokens = conn.execute('SELECT id, mint_address, output_mint FROM tokens').fetchall()
-
-        for token in tokens:
-            try:
-                url = f"https://quote-api.jup.ag/v6/quote?inputMint={token['mint_address']}&outputMint={token['output_mint']}&amount=1000000"
-                res = requests.get(url)
-                data = res.json()
-                price = float(data['data'][0]['outAmount']) / 1000000
-                prices[str(token['id'])] = round(price, 6)
-            except Exception as e:
-                prices[str(token['id'])] = "N/A"
-                logger.warning(f"Could not fetch price for {token['mint_address']}: {e}")
-    except Exception as e:
-        logger.error(f"Error retrieving prices: {e}")
-    return jsonify(prices)
-
-def check_token_prices():
-    try:
-        with get_db_connection() as conn:
-            conn.row_factory = sqlite3.Row
-            tokens = conn.execute('SELECT * FROM tokens').fetchall()
-
-        for token in tokens:
-            try:
-                url = f"https://quote-api.jup.ag/v6/quote?inputMint={token['mint_address']}&outputMint={token['output_mint']}&amount=1000000"
-                res = requests.get(url)
-                data = res.json()
-                price = float(data['data'][0]['outAmount']) / 1000000
-
-                if price < token['alarm_lower']:
-                    msg = f"🔻 Price Alert\nToken: {token['mint_address']}\nPrice: {price}\nBelow lower limit: {token['alarm_lower']}"
-                    send_telegram_message(msg)
-                    logger.info(f"Sent lower alert: {msg}")
-                elif price > token['alarm_upper']:
-                    msg = f"🔺 Price Alert\nToken: {token['mint_address']}\nPrice: {price}\nAbove upper limit: {token['alarm_upper']}"
-                    send_telegram_message(msg)
-                    logger.info(f"Sent upper alert: {msg}")
-            except Exception as e:
-                logger.warning(f"Price check error for {token['mint_address']}: {e}")
-    except Exception as e:
-        logger.error(f"Error in scheduled price check: {e}")
-
-def send_telegram_message(message):
+def send_telegram_alert(message):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {'chat_id': TELEGRAM_CHAT_ID, 'text': message}
         res = requests.post(url, data=payload)
-        if res.status_code != 200:
-            logger.warning(f"Telegram error: {res.text}")
+        res.raise_for_status()
+        logger.info(f"Telegram alert sent: {message}")
     except Exception as e:
-        logger.error(f"Failed to send Telegram message: {e}")
+        logger.error(f"Failed to send Telegram alert: {e}")
 
-if __name__ == '__main__':
-    init_db()
+# ------------------- Scheduler -------------------
 
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(check_token_prices, 'interval', minutes=1)
-    scheduler.start()
+def check_token_prices():
+    while True:
+        conn = get_db_connection()
+        tokens = conn.execute('SELECT * FROM tokens').fetchall()
+        conn.close()
 
-    try:
-        logger.info("Starting Flask app...")
-        app.run(debug=True, use_reloader=False)
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("Shutting down scheduler...")
-        scheduler.shutdown()
+        for token in tokens:
+            price = fetch_price(token['mint_address'], token['output_mint'])
+            if price is None:
+                continue
+
+            if price >= token['alarm_upper']:
+                msg = f"🚨 {token['mint_address']} price ABOVE upper alarm limit: {price:.6f} ≥ {token['alarm_upper']}"
+                send_telegram_alert(msg)
+
+            elif price <= token['alarm_lower']:
+                msg = f"⚠️ {token['mint_address']} price BELOW lower alarm limit: {price:.6f} ≤ {token['alarm_lower']}"
+                send_telegram_alert(msg)
+
+        time.sleep(60)  # check every 60 seconds
+
+# ------------------- Routes -------------------
+
+@app.route('/')
+def index():
+    conn = get_db_connection()
+    tokens = conn.execute('SELECT * FROM tokens').fetchall()
+    conn.close()
+    return render_template('index.html', tokens=tokens, edit_token=None)
+
+@app.route('/add', methods=['POST'])
+def add_token():
+    mint_address = request.form['mint_address']
+    output_mint = request.form.get('output_mint', '')
+    auto_price = 'auto_price' in request.form
+    initial_price = request.form.get('initial_price', 0)
+
+    if auto_price:
+        initial_price = fetch_price(mint_address, output_mint)
+        if initial_price is None:
+            flash("Failed to fetch initial price.")
+            return redirect(url_for('index'))
+        logger.info(f"Fetched initial price for {mint_address}: {initial_price}")
+    else:
+        initial_price = float(initial_price)
+
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO tokens (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        mint_address,
+        output_mint,
+        initial_price,
+        float(request.form['upper_bound_pct']),
+        float(request.form['lower_bound_pct']),
+        float(request.form['alarm_upper']),
+        float(request.form['alarm_lower'])
+    ))
+    conn.commit()
+    conn.close()
+    flash("Token added successfully.")
+    return redirect(url_for('index'))
+
+@app.route('/edit/<int:id>')
+def edit_token(id):
+    conn = get_db_connection()
+    token = conn.execute('SELECT * FROM tokens WHERE id = ?', (id,)).fetchone()
+    tokens = conn.execute('SELECT * FROM tokens').fetchall()
+    conn.close()
+    return render_template('index.html', edit_token=token, tokens=tokens)
+
+@app.route('/update/<int:id>', methods=['POST'])
+def update_token(id):
+    mint_address = request.form['mint_address']
+    output_mint = request.form.get('output_mint', '')
+    auto_price = 'auto_price' in request.form
+    initial_price = request.form.get('initial_price', 0)
+
+    if auto_price:
+        initial_price = fetch_price(mint_address, output_mint)
+        if initial_price is None:
+            flash("Failed to fetch price.")
+            return redirect(url_for('index'))
+        logger.info(f"Fetched updated price for {mint_address}: {initial_price}")
+    else:
+        initial_price = float(initial_price)
+
+    conn = get_db_connection()
+    conn.execute('''
+        UPDATE tokens SET
+            mint_address = ?, output_mint = ?, initial_price = ?, upper_bound_pct = ?,
+            lower_bound_pct = ?, alarm_upper = ?, alarm_lower = ?
+        WHERE id = ?
+    ''', (
+        mint_address,
+        output_mint,
+        initial_price,
+        float(request.form['upper_bound_pct']),
+        float(request.form['lower_bound_pct']),
+        float(request.form['alarm_upper']),
+        float(request.form['alarm_lower']),
+        id
+    ))
+    conn.commit()
+    conn.close()
+    flash("Token updated successfully.")
+    return redirect(url_for('index'))
+
+@app.route('/delete/<int:id>')
+def delete_token(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM tokens WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    flash("Token deleted.")
+    return redirect(url_for('index'))
+
+@app.route('/get_prices')
+def get_prices():
+    conn = get_db_connection()
+    tokens = conn.execute('SELECT id, mint_address, output_mint FROM tokens').fetchall()
+    conn.close()
+    prices = {}
+
+    for token in tokens:
+        price = fetch_price(token['mint_address'], token['output_mint'])
+        prices[str(token['id'])] = round(price, 6) if price else "N/A"
+
+    return jsonify(prices)
+
+# ------------------- Start -------------------
+
+init_db()
+scheduler = BackgroundScheduler()
+scheduler.add_job(check_token_prices, 'interval', minutes=1)
+scheduler.start()
+# try:
+#     logger.info("Starting Flask app...")
+#     app.run(debug=True, use_reloader=False)
+# except (KeyboardInterrupt, SystemExit):
+#     logger.info("Shutting down scheduler...")
+    # scheduler.shutdown()
