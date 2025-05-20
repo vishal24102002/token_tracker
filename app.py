@@ -206,52 +206,32 @@ def edit_token(id):
 
 @app.route('/add', methods=['POST'])
 def add_token():
-    """Add a new token to track."""
-    try:
-        mint_address = request.form['mint_address']
-        use_auto_price = 'auto_price' in request.form
-        initial_price = float(request.form['initial_price']) if not use_auto_price else None
-        upper_bound_pct = float(request.form['upper_bound_pct'])
-        lower_bound_pct = float(request.form['lower_bound_pct'])
-        alarm_upper = float(request.form['alarm_upper'])
-        alarm_lower = float(request.form['alarm_lower'])
+    mint_address = request.form['mint_address']
+    use_aggregator = 'use_aggregator' in request.form
+    output_mint_address = request.form.get('output_mint_address', '') if use_aggregator else None
+    auto_price = 'auto_price' in request.form
 
-        if use_auto_price:
-            initial_price = get_token_price(mint_address)
-            if initial_price is None:
-                flash(f"Could not fetch price for mint address {mint_address}. Please enter manually.")
-                return redirect(url_for('index'))
+    initial_price = request.form.get('initial_price') if not auto_price else None
+    upper_bound_pct = float(request.form['upper_bound_pct'])
+    lower_bound_pct = float(request.form['lower_bound_pct'])
+    alarm_upper = float(request.form['alarm_upper'])
+    alarm_lower = float(request.form['alarm_lower'])
 
-        if alarm_lower >= initial_price or alarm_upper <= initial_price:
-            flash("Alarm bounds must be outside initial price range.")
-            return redirect(url_for('index'))
+    # Save to DB (add_token_to_db is your function)
+    add_token_to_db(
+        mint_address=mint_address,
+        initial_price=initial_price,
+        upper_bound_pct=upper_bound_pct,
+        lower_bound_pct=lower_bound_pct,
+        alarm_upper=alarm_upper,
+        alarm_lower=alarm_lower,
+        use_aggregator=use_aggregator,
+        output_mint_address=output_mint_address,
+        auto_price=auto_price
+    )
 
-        conn = get_db_connection()
-        c = conn.cursor()
-        output_mint = request.form.get('output_mint', '')
-        use_aggregator = 1 if 'use_aggregator' in request.form else 0
-        ...
-        c.execute('''INSERT INTO tokens (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct,
-                     alarm_upper, alarm_lower, use_aggregator)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct,
-                   alarm_upper, alarm_lower, use_aggregator))
-        # c.execute('''INSERT INTO tokens (mint_address, initial_price, upper_bound_pct, lower_bound_pct,
-        #              alarm_upper, alarm_lower)
-        #              VALUES (?, ?, ?, ?, ?, ?)''',
-        #              (mint_address, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower))
-        conn.commit()
-        conn.close()
-        flash(f"Token with mint address {mint_address[:6]}... added successfully!")
-        return redirect(url_for('index'))
-    except KeyError as e:
-        logger.error(f"Form field missing: {e}")
-        flash(f"Error: Missing form field {e}. Please check the form and try again.")
-        return redirect(url_for('index'))
-    except ValueError as e:
-        logger.error(f"Invalid form data: {e}")
-        flash("Error: Invalid input data. Please ensure all fields are valid numbers.")
-        return redirect(url_for('index'))
+    flash('Token added successfully!')
+    return redirect(url_for('index'))
 
 @app.route('/delete/<int:id>')
 def delete_token(id):
