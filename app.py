@@ -31,7 +31,8 @@ def init_db():
                       upper_bound_pct REAL NOT NULL,
                       lower_bound_pct REAL NOT NULL,
                       alarm_upper REAL NOT NULL,
-                      alarm_lower REAL NOT NULL,
+                      alarm_lower REAL NOT NULL,\
+                      use_aggregator INTEGER DEFAULT 0,
                       last_alert TEXT)''')
         conn.commit()
         conn.close()
