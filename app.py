@@ -39,6 +39,7 @@ def init_db():
         conn.execute('''
             CREATE TABLE IF NOT EXISTS tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token_name TEXT,
                 mint_address TEXT NOT NULL,
                 output_mint TEXT,
                 initial_price REAL,
@@ -106,6 +107,20 @@ def check_token_prices():
 
         time.sleep(60)  # check every 60 seconds
 
+def get_token_name_price(contractor: str):
+    # If not in cache, fetch from API
+    url = f"https://crimson-ancient-market.solana-mainnet.quiknode.pro/7b1dfa5a6af169b6c5b4146aa362be45238935b5/addon/912/networks/solana/tokens/{contractor}"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        # summary = data.get('summary', {})
+        name = data.get("symbol", "Unknown")
+        return name
+    except:
+        pass
+
 # ------------------- Routes -------------------
 
 @app.route('/')
@@ -132,12 +147,15 @@ def add_token():
     else:
         initial_price = float(request.form.get('initial_price', 0))
 
+    token_names=get_token_name_price(mint_address)
+
     conn = get_db_connection()
     if initial_price>=alarm_l and initial_price<=alarm_u:
         conn.execute('''
-            INSERT INTO tokens (mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO tokens (token_name, mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
+            token_names,
             mint_address,
             output_mint,
             initial_price,
@@ -223,6 +241,7 @@ def get_prices():
         logger.error(f"Failed to fetch Raydium prices: {e}")
 
     for token in tokens:
+        logger.info(token)
         try:
             token_id = str(token['id'])
             mint_address = token['mint_address']
@@ -233,13 +252,10 @@ def get_prices():
                     i=raydium_prices[mint_address]
                     o=raydium_prices[output_mint]
                     price = float(i/o)
-                except Exception as e:
-                    url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
-                    res = requests.get(url)
-                    data = res.json()
-                    price = float(data['data'][0]['outAmount']) / 1000000
-                    print("price from upiter agregator")
-
+                except:
+                    i=float(upreq(mint_address))
+                    o=float(upreq(output_mint))
+                    price = float(i/o)
             else:
                 # Use Raydium prices if output_mint is not provided
                 if mint_address in raydium_prices:
@@ -253,6 +269,19 @@ def get_prices():
             logger.error(f"Error fetching price for token {token_id}: {e}")
 
     return jsonify(prices)
+
+def upreq(mint):
+    url = f"https://lite-api.jup.ag/price/v2?ids={mint}"
+
+    payload = {}
+    headers = {
+      'Accept': 'application/json'
+    }
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+    response=response.json()
+    logger.info(response['data'][mint]['price'])
+    return response['data'][mint]['price']
 
 # ------------------- Start -------------------
 
