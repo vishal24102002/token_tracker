@@ -194,6 +194,8 @@ def get_or_store_token_details(mint_address):
         response.raise_for_status()
         data = response.json() 
 
+        save_token_history(data['name'], mint_address)
+
         result = {
             "name": data['name'],
             "symbol": data["symbol"],
