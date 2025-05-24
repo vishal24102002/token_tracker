@@ -34,6 +34,8 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+
+
 def init_db():
     with get_db_connection() as conn:
         conn.execute('''
@@ -48,6 +50,23 @@ def init_db():
                 alarm_upper REAL NOT NULL,
                 alarm_lower REAL NOT NULL
             );
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token_name TEXT NOT NULL,
+                mint_address TEXT NOT NULL,
+                timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS token_details (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                symbol TEXT,
+                address TEXT UNIQUE,
+                decimal INTEGER
+            )
         ''')
     logger.info("Database initialized.")
 
@@ -121,7 +140,74 @@ def get_token_name_price(contractor: str):
     except:
         pass
 
+def save_token_history(token_name, mint_address):
+    cursor.execute('''
+    INSERT INTO history (token_name, mint_address)
+    VALUES (?, ?)
+    ''', (token_name, mint_address))
+    conn.commit()
+    print(f"Saved token: {token_name}, Address: {mint_address}")
+
+def get_or_store_token_details(mint_address):
+    conn = sqlite3.connect('tokens.db')
+    cursor = conn.cursor()
+
+    # Check if token already exists
+    cursor.execute("SELECT name, symbol, address, decimal FROM token_details WHERE address = ?", (mint_address,))
+    row = cursor.fetchone()
+
+    if row:
+        # Token found in DB
+        name, symbol, address, decimal = row
+        result = {
+            "name": name,
+            "symbol": symbol,
+            "id": address,
+            "decimals": decimal
+        }
+        print("Token found in database.")
+    else:
+        # Token not found, fetch from API
+        url = f"https://crimson-ancient-market.solana-mainnet.quiknode.pro/7b1dfa5a6af169b6c5b4146aa362be45238935b5/addon/912/networks/solana/tokens/{mint}"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json() 
+
+        result = {
+            "name": data['name'],
+            "symbol": data["symbol"],
+            "id": data["id"],
+            "decimals": data["decimals"]
+        }
+        
+        logger.info(result)
+
+        # Store in DB
+        cursor.execute('''
+            INSERT OR IGNORE INTO token_details (name, symbol, address, decimal)
+            VALUES (?, ?, ?, ?)
+        ''', (result["name"], result["symbol"], result["id"], result["decimals"]))
+        conn.commit()
+        print("Token stored in database.")
+
+    conn.close()
+    return result
+
+
 # ------------------- Routes -------------------
+
+# Step 4: Flask API endpoint
+@app.route('/api/token', methods=['POST'])
+def handle_token_request():
+    data = request.get_json()
+    mint = data.get("mint")
+
+    if not mint:
+        return jsonify({"error": "Mint address is required"}), 400
+
+    token_info = get_or_store_token_details(mint)
+    return jsonify(token_info)
+
 
 @app.route('/')
 def index():
