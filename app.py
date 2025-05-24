@@ -153,7 +153,11 @@ def get_or_store_token_details(mint_address):
     cursor = conn.cursor()
 
     raydium_response = requests.get("https://api.raydium.io/v2/main/price").json()
-
+    try:
+        price=raydium_response[mint_address]
+    except:
+        price="N/A"
+    
     # Check if token already exists
     cursor.execute("SELECT name, symbol, address, decimal FROM token_details WHERE address = ?", (mint_address,))
     row = cursor.fetchone()
@@ -166,7 +170,7 @@ def get_or_store_token_details(mint_address):
             "symbol": symbol,
             "id": address,
             "decimals": decimal,
-            "price": raydium_response[mint_address]
+            "price": price
         }
         print("Token found in database.")
     else:
@@ -181,7 +185,7 @@ def get_or_store_token_details(mint_address):
             "symbol": data["symbol"],
             "id": data["id"],
             "decimals": data["decimals"],
-            "price": raydium_response[mint_address]
+            "price": data.get("summary",{}).get("price_usd","")
         }
         
         logger.info(result)
