@@ -147,6 +147,7 @@ def get_token_name_price(contractor: str):
         pass
 
 def save_token_history(token_name, mint_address):
+    conn = get_db_connection()
     conn.execute('''
     INSERT INTO history (token_name, mint_address)
     VALUES (?, ?)
