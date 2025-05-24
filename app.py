@@ -245,8 +245,8 @@ def add_token():
     auto_price = 'auto_price' in request.form
     alarm_u=float(request.form['alarm_upper'])
     alarm_l=float(request.form['alarm_lower'])
-    u_bound=request.form.get("upper_bound_pct","")
-    l_bound=request.form.get("lower_bound_pct","")
+    u_bound=float(request.form.get("upper_bound_pct",""))
+    l_bound=float(request.form.get("lower_bound_pct",""))
 
     if auto_price:
         initial_price = fetch_price(mint_address, output_mint)
