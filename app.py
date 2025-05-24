@@ -237,8 +237,9 @@ def handle_token_request():
 def index():
     conn = get_db_connection()
     tokens = conn.execute('SELECT * FROM tokens').fetchall()
+    data = conn.execute('SELECT token_name, mint_address FROM history').fetchall()
     conn.close()
-    return render_template('index.html', tokens=tokens, edit_token=None)
+    return render_template('index.html', tokens=tokens, edit_token=None, tokens_history=data)
 
 @app.route('/add', methods=['POST'])
 def add_token():
