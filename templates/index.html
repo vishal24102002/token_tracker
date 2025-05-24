@@ -141,10 +141,10 @@
 
             <div id="output_token_detail" style="visibility: hidden;">
                 </center><h5><b>Output Mint</b></h5></center>
-                <p><strong>Name:</strong> <span id="tokenName">N/A</span></p>
-                <p><strong>Symbol:</strong> <span id="tokenSymbol">N/A</span></p>
-                <p><strong>Address:</strong> <span id="tokenAddress">N/A</span></p>
-                <p><strong>Network:</strong> <span id="tokenNetwork">N/A</span></p>
+                <p><strong>Name:</strong> <span id="token2Name">N/A</span></p>
+                <p><strong>Symbol:</strong> <span id="token2Symbol">N/A</span></p>
+                <p><strong>Address:</strong> <span id="token2Address">N/A</span></p>
+                <p><strong>Decimal:</strong> <span id="token2Network">N/A</span></p>
 <!--                 <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p> -->
                 <p><strong>Price:</strong> <span id="tokenPrice">N/A</span></p>                
             </div>
@@ -152,27 +152,39 @@
     </div>
 
     <script>
-        // async function loadTokenDetails() {
-        //   const response = await fetch('https://api.coingecko.com/api/v3/coins/solana');
-        //   const data = await response.json();
-        
-        //   const tokenData = {
-        //     name: data.name,
-        //     symbol: data.symbol.toUpperCase(),
-        //     address: "So11111111111111111111111111111111111111112", // You can use other APIs for real on-chain address
-        //     network: "Solana Mainnet",
-        //     aggregator: document.getElementById("use_jupiter").checked ? "Jupiter" : "None",
-        //     price: `$${data.market_data.current_price.usd}`
-        //   };
-        
-        //   document.getElementById("tokenName").textContent = tokenData.name;
-        //   document.getElementById("tokenSymbol").textContent = tokenData.symbol;
-        //   document.getElementById("tokenAddress").textContent = tokenData.address;
-        //   document.getElementById("tokenNetwork").textContent = tokenData.network;
-        //   document.getElementById("tokenAggregator").textContent = tokenData.aggregator;
-        //   document.getElementById("tokenPrice").textContent = tokenData.price;
-        // }
 
+        async function loadTokenDetails() {
+           const mintAddress = document.getElementById("mint_address").value.trim();// Replace with dynamic value if needed
+           if (!mintAddress) {
+            alert("Please enter a mint address.");
+            return;
+          } 
+        
+          try {
+            const response = await fetch("http://127.0.0.1:5000/api/token", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ mint: mintAddress })
+            });
+        
+            if (!response.ok) {
+              throw new Error("Failed to fetch token details from API.");
+            }
+        
+            const data = await response.json();        
+        
+            document.getElementById("tokenName").textContent = data.name;
+            document.getElementById("tokenSymbol").textContent = data.symbol;
+            document.getElementById("tokenAddress").textContent = data.id;
+            document.getElementById("tokenNetwork").textContent = data.decimals;
+            // document.getElementById("tokenAggregator").textContent = data.aggregator;
+            document.getElementById("tokenPrice").textContent = data.price;
+          } catch (error) {
+            console.error("Error loading token details:", error);
+          }
+        }
         
         function updatePrices() {
             fetch('/get_prices')
