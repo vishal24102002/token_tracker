@@ -15,101 +15,134 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Token Price Tracker</h1>
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="alert alert-info">
-                    {% for message in messages %}
-                        {{ message }}<br>
-                    {% endfor %}
+    <div class="main_container">
+        <div class="container">
+            <h1>Token Price Tracker</h1>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="alert alert-info">
+                        {% for message in messages %}
+                            {{ message }}<br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+    
+            <form method="POST" action="{{ url_for('add_token') if not edit_token else url_for('update_token', id=edit_token['id']) }}">
+                <div class="form-group">
+                    <label for="mint_address">Input Mint Address</label>
+                    <input type="text" class="form-control" id="mint_address" name="mint_address" required value="{{ edit_token['mint_address'] if edit_token else '' }}">
                 </div>
-            {% endif %}
-        {% endwith %}
-
-        <form method="POST" action="{{ url_for('add_token') if not edit_token else url_for('update_token', id=edit_token['id']) }}">
-            <div class="form-group">
-                <label for="mint_address">Input Mint Address</label>
-                <input type="text" class="form-control" id="mint_address" name="mint_address" required value="{{ edit_token['mint_address'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="use_jupiter" name="use_aggregator" onchange="toggleOutputMint()">
-                    Use Jupiter Aggregator
-                </label>
-            </div>
-            <div class="form-group" id="output_mint_group">
-                <label for="output_mint_address">Output Mint Address</label>
-                <input type="text" class="form-control" id="output_mint_address" name="output_mint">
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="auto_price" name="auto_price" onchange="toggleInitialPrice()">
-                    Fetch Initial Price Automatically
-                </label>
-            </div>
-            <div class="form-group" id="initial_price_group">
-                <label for="initial_price">Initial Price ($)</label>
-                <input type="number" step="0.01" class="form-control" id="initial_price" name="initial_price" value="{{ edit_token['initial_price'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="upper_bound_pct">Upper Bound (%)</label>
-                <input type="number" step="0.1" class="form-control" id="upper_bound_pct" name="upper_bound_pct" required value="{{ edit_token['upper_bound_pct'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="lower_bound_pct">Lower Bound (%)</label>
-                <input type="number" step="0.1" class="form-control" id="lower_bound_pct" name="lower_bound_pct" required value="{{ edit_token['lower_bound_pct'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="alarm_upper">Alarm Upper Bound ($)</label>
-                <input type="number" step="0.01" class="form-control" id="alarm_upper" name="alarm_upper" required value="{{ edit_token['alarm_upper'] if edit_token else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="alarm_lower">Alarm Lower Bound ($)</label>
-                <input type="number" step="0.01" class="form-control" id="alarm_lower" name="alarm_lower" required value="{{ edit_token['alarm_lower'] if edit_token else '' }}">
-            </div>
-            <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
-        </form>
-
-        <h2>Tracked Tokens</h2>
-        {% if tokens %}
-            <table class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Mint Address</th>
-                        <th>Initial Price</th>
-                        <th>Current Price</th>
-                        <th>Upper Bound (%)</th>
-                        <th>Lower Bound (%)</th>
-                        <th>Alarm Upper</th>
-                        <th>Alarm Lower</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for token in tokens %}
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="use_jupiter" name="use_aggregator" onchange="toggleOutputMint()">
+                        Use Jupiter Aggregator
+                    </label>
+                </div>
+                <div class="form-group" id="output_mint_group">
+                    <label for="output_mint_address">Output Mint Address</label>
+                    <input type="text" class="form-control" id="output_mint_address" name="output_mint">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="auto_price" name="auto_price" onchange="toggleInitialPrice()">
+                        Fetch Initial Price Automatically
+                    </label>
+                </div>
+                <div class="form-group" id="initial_price_group">
+                    <label for="initial_price">Initial Price ($)</label>
+                    <input type="number" step="0.01" class="form-control" id="initial_price" name="initial_price" value="{{ edit_token['initial_price'] if edit_token else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="upper_bound_pct">Upper Bound (%)</label>
+                    <input type="number" step="0.1" class="form-control" id="upper_bound_pct" name="upper_bound_pct" required value="{{ edit_token['upper_bound_pct'] if edit_token else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="lower_bound_pct">Lower Bound (%)</label>
+                    <input type="number" step="0.1" class="form-control" id="lower_bound_pct" name="lower_bound_pct" required value="{{ edit_token['lower_bound_pct'] if edit_token else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="alarm_upper">Alarm Upper Bound ($)</label>
+                    <input type="number" step="0.01" class="form-control" id="alarm_upper" name="alarm_upper" required value="{{ edit_token['alarm_upper'] if edit_token else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="alarm_lower">Alarm Lower Bound ($)</label>
+                    <input type="number" step="0.01" class="form-control" id="alarm_lower" name="alarm_lower" required value="{{ edit_token['alarm_lower'] if edit_token else '' }}">
+                </div>
+                <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
+            </form>
+    
+            <h2>Tracked Tokens</h2>
+            {% if tokens %}
+                <table class="table table-bordered">
+                    <thead>
                         <tr>
-                            <td>{{ token['mint_address'][:6] }}...</td>
-                            <td>${{ token['initial_price'] | round(2) }}</td>
-                            <td class="current-price" data-token-id="{{ token['id'] }}">Loading...</td>
-                            <td>{{ token['upper_bound_pct'] }}%</td>
-                            <td>{{ token['lower_bound_pct'] }}%</td>
-                            <td>${{ token['alarm_upper'] | round(2) }}</td>
-                            <td>${{ token['alarm_lower'] | round(2) }}</td>
-                            <td>
-                                <a href="{{ url_for('edit_token', id=token['id']) }}" class="btn btn-warning btn-sm">Edit</a>
-                                <a href="{{ url_for('delete_token', id=token['id']) }}" class="btn btn-danger btn-sm">Delete</a>
-                            </td>
+                            <th>Mint Address</th>
+                            <th>Initial Price</th>
+                            <th>Current Price</th>
+                            <th>Upper Bound (%)</th>
+                            <th>Lower Bound (%)</th>
+                            <th>Alarm Upper</th>
+                            <th>Alarm Lower</th>
+                            <th>Actions</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No tokens being tracked.</p>
-        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for token in tokens %}
+                            <tr>
+                                <td>{{ token['mint_address'][:6] }}...</td>
+                                <td>${{ token['initial_price'] | round(2) }}</td>
+                                <td class="current-price" data-token-id="{{ token['id'] }}">Loading...</td>
+                                <td>{{ token['upper_bound_pct'] }}%</td>
+                                <td>{{ token['lower_bound_pct'] }}%</td>
+                                <td>${{ token['alarm_upper'] | round(2) }}</td>
+                                <td>${{ token['alarm_lower'] | round(2) }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_token', id=token['id']) }}" class="btn btn-warning btn-sm">Edit</a>
+                                    <a href="{{ url_for('delete_token', id=token['id']) }}" class="btn btn-danger btn-sm">Delete</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No tokens being tracked.</p>
+            {% endif %}
+        </div>
+        <div class="side_div">
+            <h5 class="mb-3">Token Details</h5>
+            <p><strong>Name:</strong> <span id="tokenName">N/A</span></p>
+            <p><strong>Symbol:</strong> <span id="tokenSymbol">N/A</span></p>
+            <p><strong>Address:</strong> <span id="tokenAddress">N/A</span></p>
+            <p><strong>Network:</strong> <span id="tokenNetwork">N/A</span></p>
+            <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p>
+            <p><strong>Price:</strong> <span id="tokenPrice">N/A</span></p>
+        </div>
     </div>
 
     <script>
+        // async function loadTokenDetails() {
+        //   const response = await fetch('https://api.coingecko.com/api/v3/coins/solana');
+        //   const data = await response.json();
+        
+        //   const tokenData = {
+        //     name: data.name,
+        //     symbol: data.symbol.toUpperCase(),
+        //     address: "So11111111111111111111111111111111111111112", // You can use other APIs for real on-chain address
+        //     network: "Solana Mainnet",
+        //     aggregator: document.getElementById("use_jupiter").checked ? "Jupiter" : "None",
+        //     price: `$${data.market_data.current_price.usd}`
+        //   };
+        
+        //   document.getElementById("tokenName").textContent = tokenData.name;
+        //   document.getElementById("tokenSymbol").textContent = tokenData.symbol;
+        //   document.getElementById("tokenAddress").textContent = tokenData.address;
+        //   document.getElementById("tokenNetwork").textContent = tokenData.network;
+        //   document.getElementById("tokenAggregator").textContent = tokenData.aggregator;
+        //   document.getElementById("tokenPrice").textContent = tokenData.price;
+        // }
+
+        
         function updatePrices() {
             fetch('/get_prices')
                 .then(response => response.json())
