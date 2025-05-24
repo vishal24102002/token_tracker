@@ -168,7 +168,7 @@ def get_or_store_token_details(mint_address):
         print("Token found in database.")
     else:
         # Token not found, fetch from API
-        url = f"https://crimson-ancient-market.solana-mainnet.quiknode.pro/7b1dfa5a6af169b6c5b4146aa362be45238935b5/addon/912/networks/solana/tokens/{mint}"
+        url = f"https://crimson-ancient-market.solana-mainnet.quiknode.pro/7b1dfa5a6af169b6c5b4146aa362be45238935b5/addon/912/networks/solana/tokens/{mint_address}"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json() 
