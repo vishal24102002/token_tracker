@@ -129,6 +129,7 @@
             const checked = document.getElementById('use_jupiter').checked;
             const outputGroup = document.getElementById('output_mint_group');
             outputGroup.style.display = checked ? 'block' : 'none';
+            const button = document.getElementById("tokenButton");
             if (checked) {
                 button.textContent = "Add Token Pair";
             } else {
