@@ -156,7 +156,15 @@ def get_or_store_token_details(mint_address):
     try:
         price=raydium_response[mint_address]
     except:
-        price="N/A"
+        url = "https://lite-api.jup.ag/price/v2?ids=KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS"
+        payload = {}
+        headers = {
+          'Accept': 'application/json'
+        }
+        
+        response = requests.request("GET", url, headers=headers, data=payload).json()
+        
+        price=response.get("data",{}).get(mint_address,{}).get("price","N/A")
     
     # Check if token already exists
     cursor.execute("SELECT name, symbol, address, decimal FROM token_details WHERE address = ?", (mint_address,))
