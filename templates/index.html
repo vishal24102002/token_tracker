@@ -139,7 +139,7 @@
             <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p>
             <p><strong>Price:</strong> <span id="tokenPrice">N/A</span></p>
 
-            <div class="output_token_detail">
+            <div class="output_token_detail" style="visibility: hidden;">
                 <h5><b>Output Mint</b></h5>
                 <p><strong>Name:</strong> <span id="tokenName">N/A</span></p>
                 <p><strong>Symbol:</strong> <span id="tokenSymbol">N/A</span></p>
@@ -197,9 +197,10 @@
             const button = document.getElementById("tokenButton");
             if (checked) {
                 button.textContent = "Add Token Pair";
-                output.style.display = none;
+                output.style.visibility = "visible";
             } else {
                 button.textContent = "Add Token"; // Or "Update Token" depending on your logic
+                output.style.visibility = "hidden";
             }
             fetchInitialPrice();
         }
