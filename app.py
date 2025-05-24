@@ -59,7 +59,7 @@ def init_db():
                 timestamp TEXT DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        cursor.execute('''
+        conn.execute('''
             CREATE TABLE IF NOT EXISTS token_details (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
@@ -141,7 +141,7 @@ def get_token_name_price(contractor: str):
         pass
 
 def save_token_history(token_name, mint_address):
-    cursor.execute('''
+    conn.execute('''
     INSERT INTO history (token_name, mint_address)
     VALUES (?, ?)
     ''', (token_name, mint_address))
