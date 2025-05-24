@@ -75,11 +75,17 @@ def init_db():
 def fetch_price(mint_address, output_mint=None):
     try:
         if output_mint:
-            url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
-            res = requests.get(url)
-            res.raise_for_status()
-            data = res.json()
-            return float(data['data'][0]['outAmount']) / 1000000
+            try:
+                url = f"https://quote-api.jup.ag/v6/quote?inputMint={mint_address}&outputMint={output_mint}&amount=1000000"
+                res = requests.get(url)
+                res.raise_for_status()
+                data = res.json()
+                return float(data['data'][0]['outAmount']) / 1000000
+            except:
+                i=float(upreq(mint_address))
+                o=float(upreq(output_mint))
+                return float(i/o)
+                
         else:
             url = f"https://api.raydium.io/v2/main/price"
             res = requests.get(url)
