@@ -30,6 +30,7 @@
 <body>
     <div class="main_container">
         <div class="box container">
+            <div class="frame1">
             <h1>Token Price Tracker</h1>
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
@@ -84,18 +85,8 @@
                 </div>
                 <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
             </form>
-        </div>
-        <div class="box side_div" style="width: 300px; background-color: lightblue;">
-            <h5 class="mb-3">Token Details</h5>
-            <p><strong>Name:</strong> <span id="tokenName">N/A</span></p>
-            <p><strong>Symbol:</strong> <span id="tokenSymbol">N/A</span></p>
-            <p><strong>Address:</strong> <span id="tokenAddress">N/A</span></p>
-            <p><strong>Network:</strong> <span id="tokenNetwork">N/A</span></p>
-            <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p>
-            <p><strong>Price:</strong> <span id="tokenPrice">N/A</span></p>
-        </div>
-    </div>
-    <div class="table-back" style="background-color: lightblue; border: 1px solid #ccc;">
+            </div>
+            <div class="table-back" style="background-color: lightblue; border: 1px solid #ccc;">
         <h2>Tracked Tokens</h2>
         {% if tokens %}
         <table class="table table-bordered" >
@@ -132,6 +123,17 @@
         {% else %}
             <p>No tokens being tracked.</p>
         {% endif %}
+    </div>
+        </div>
+        <div class="box side_div" style="width: 300px; background-color: lightblue;">
+            <h5 class="mb-3">Token Details</h5>
+            <p><strong>Name:</strong> <span id="tokenName">N/A</span></p>
+            <p><strong>Symbol:</strong> <span id="tokenSymbol">N/A</span></p>
+            <p><strong>Address:</strong> <span id="tokenAddress">N/A</span></p>
+            <p><strong>Network:</strong> <span id="tokenNetwork">N/A</span></p>
+            <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p>
+            <p><strong>Price:</strong> <span id="tokenPrice">N/A</span></p>
+        </div>
     </div>
 
     <script>
