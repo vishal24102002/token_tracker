@@ -245,6 +245,8 @@ def add_token():
     auto_price = 'auto_price' in request.form
     alarm_u=float(request.form['alarm_upper'])
     alarm_l=float(request.form['alarm_lower'])
+    u_bound=request.form.get("upper_bound_pct","")
+    l_bound=request.form.get("lower_bound_pct","")
 
     if auto_price:
         initial_price = fetch_price(mint_address, output_mint)
@@ -258,7 +260,7 @@ def add_token():
     token_names=get_token_name_price(mint_address)
 
     conn = get_db_connection()
-    if initial_price>=alarm_l and initial_price<=alarm_u:
+    if l_bound>=alarm_l and u_bound>=alarm_u:
         conn.execute('''
             INSERT INTO tokens (token_name, mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -276,7 +278,7 @@ def add_token():
         conn.close()
         flash("Token added successfully.")
     else:
-        flash(f"{alarm_u} limit should be in greater then the {initial_price} & {alarm_l} limit should be less than {initial_price}")
+        flash(f"{alarm_u} limit should be in less then the {u_bound} & {alarm_l} limit should be less than {l_bound}")
     return redirect(url_for('index'))
 
 @app.route('/edit/<int:id>')
