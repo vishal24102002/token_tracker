@@ -180,6 +180,7 @@
             document.getElementById("token2Network").textContent = data.decimals;
             // document.getElementById("tokenAggregator").textContent = data.aggregator;
             document.getElementById("token2Price").textContent = data.price;
+            document.getElementById("token2Price").style.color = "green";
           } catch (error) {
             console.error("Error loading token details:", error);
           }
@@ -213,6 +214,7 @@
             document.getElementById("tokenNetwork").textContent = data.decimals;
             // document.getElementById("tokenAggregator").textContent = data.aggregator;
             document.getElementById("tokenPrice").textContent = data.price;
+            document.getElementById("tokenPrice").style.color = "green";
           } catch (error) {
             console.error("Error loading token details:", error);
           }
