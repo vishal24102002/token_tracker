@@ -68,7 +68,7 @@
                 <label for="alarm_lower">Alarm Lower Bound ($)</label>
                 <input type="number" step="0.01" class="form-control" id="alarm_lower" name="alarm_lower" required value="{{ edit_token['alarm_lower'] if edit_token else '' }}">
             </div>
-            <button type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
+            <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
         </form>
 
         <h2>Tracked Tokens</h2>
