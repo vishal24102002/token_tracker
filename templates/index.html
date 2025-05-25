@@ -24,6 +24,31 @@
         .container { max-width: 1200px; }
         .form-group { margin-bottom: 15px; }
         .table { margin-top: 20px; }
+        @media (max-width: 768px) {
+          .main_container {
+            flex-direction: column;
+            align-items: center;
+          }
+        
+          .box {
+            width: 90% !important;
+            margin: 0 auto !important;
+          }
+        
+          .table-back {
+            width: 100% !important;
+          }
+        
+          .table-responsive {
+            overflow-x: auto;
+          }
+        
+          .table {
+            min-width: 600px;
+            width: 100%;
+          }
+        }
+
         #output_mint_group, #initial_price_group { display: none; }
     </style>
 </head>
