@@ -125,11 +125,11 @@ def check_token_prices():
             # print(f"total price after bound {(token['alarm_lower']/100)*(token["lower_bound_pct"])}")
             
             if price >= (token['alarm_upper']/100)*(token["upper_bound_pct"]):
-                msg = f"🚨 {token['mint_address']} price ABOVE upper alarm limit: {price:.6f} ≥ {token['alarm_upper']}"
+                msg = f"🚨 {token['mint_address']} price ABOVE upper alarm limit: {price:.6f} ≥ {(token['alarm_upper']/100)*(token["upper_bound_pct"])}"
                 send_telegram_alert(msg)
 
             elif price <= (token['alarm_lower']/100)*(token["lower_bound_pct"]):
-                msg = f"⚠️ {token['mint_address']} price BELOW lower alarm limit: {price:.6f} ≤ {token['alarm_lower']}"
+                msg = f"⚠️ {token['mint_address']} price BELOW lower alarm limit: {price:.6f} ≤ {(token['alarm_lower']/100)*(token["lower_bound_pct"])}"
                 send_telegram_alert(msg)
 
         time.sleep(60)  # check every 60 seconds
@@ -266,7 +266,7 @@ def add_token():
     token_names=get_token_name_price(mint_address)
 
     conn = get_db_connection()
-    if l_bound>=alarm_l and u_bound>=alarm_u:
+    if l_bound<=initial_price and u_bound>=initial_price:
         conn.execute('''
             INSERT INTO tokens (token_name, mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -284,7 +284,7 @@ def add_token():
         conn.close()
         flash("Token added successfully.")
     else:
-        flash(f"{alarm_u} limit should be in less then the {u_bound} & {alarm_l} limit should be less than {l_bound}")
+        flash(f"{l_bound} limit should be in less then the {initial_price} & {u_bound} limit should be less than {initial_price}")
     return redirect(url_for('index'))
 
 @app.route('/edit/<int:id>')
