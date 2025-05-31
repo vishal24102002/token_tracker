@@ -6,17 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Token Price Tracker</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
+        html, body {
+        overflow: hidden;
+        height: 100%;
+    }
+
         body { padding: 20px; }
         .main_container {
           display: flex;
           justify-content: space-between; /* Or `center`, `flex-start`, etc. */
           gap: 10px; /* Space between boxes */
         }
-        
+
         .box {
-/*             height: 80vh; */
-            width: 48%; /* Or any fixed size like 300px */
+/*          height: 80vh; */
             padding: 10px;
             background-color: #f0f0f0;
             border: 1px solid #ccc;
@@ -24,25 +30,60 @@
         .container { max-width: 1200px; }
         .form-group { margin-bottom: 15px; }
         .table { margin-top: 20px; }
+
+        .table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+        }
+
+        .table thead th {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .table tbody td {
+            background-color: white;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .table td, .table th {
+            padding: 12px;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-sm {
+            margin: 0 2px;
+        }
+
         @media (max-width: 768px) {
           .main_container {
             flex-direction: column;
             align-items: center;
           }
-        
+
           .box {
             width: 95% !important;
             margin: 0 auto !important;
           }
-        
+
           .table-back {
             width: 100% !important;
           }
-        
-          .table-responsive {
+
+          .table-bordered {
             overflow-x: auto;
           }
-        
+
           .table {
             min-width: 600px;
             width: 100%;
@@ -54,19 +95,42 @@
 </head>
 <body>
     <div class="main_container">
-        <div class="box previous_token" style="background-color: lightgreen; width: 500px;">
-            <center><h3 style="padding: 20px 0;"><b>History</b></h3></center>
-            {% for token_his in tokens_history %}
-            <div class="token-container">
-                <div class="token-title">{{ token_his[0] }}</div>
-                <div class="token-address">{{ token_his[1] }}</div>
+        <div style="padding: 10px;">
+            <div class="box previous_token" style="background-color: lightgreen; width: 500px;">
+                <center><h3 style="padding: 20px 0;"><b>History</b></h3></center>
+                {% for token_his in tokens_history %}
+                <div class="token-container" style="padding:10px;">
+                    <div class="token-title">{{ token_his[0] }}</div>
+                    <div class="token-address">{{ token_his[1] }}</div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}       
-            
+            <div class="box side_div" style="width: 500px; background-color: lightblue;">
+                <h3 class="mb-3" style="padding: 25px 15px 0 0 ;">Token Details</h3>
+
+                <center><h5 style="padding: 20px 0;"><b>Input Mint</b></h5></center>
+                <p><strong>Name:</strong> <span id="tokenName">N/A</span></p>
+                <p><strong>Symbol:</strong> <span id="tokenSymbol">N/A</span></p>
+                <p><strong>Address:</strong> <span id="tokenAddress">N/A</span></p>
+                <p><strong>Decimal:</strong> <span id="tokenNetwork">N/A</span></p>
+    <!--             <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p> -->
+                <p><strong>Price:</strong> <span id="tokenPrice">N/A</span></p>
+
+                <div id="output_token_detail" style="visibility: hidden; padding: 20px 0;">
+                    <center><h5><b>Output Mint</b></h5></center>
+                    <p><strong>Name:</strong> <span id="token2Name">N/A</span></p>
+                    <p><strong>Symbol:</strong> <span id="token2Symbol">N/A</span></p>
+                    <p><strong>Address:</strong> <span id="token2Address">N/A</span></p>
+                    <p><strong>Decimal:</strong> <span id="token2Network">N/A</span></p>
+    <!--                 <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p> -->
+                    <p><strong>Price:</strong> <span id="token2Price">N/A</span></p>
+                </div>
+            </div>
         </div>
+
         <div class="box container">
             <div class="frame1">
-            <h1>Token Price Tracker</h1>
+            <h2>Token Pair Tracker version - 0.0.0.1</h2>
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
                     <div class="alert alert-info">
@@ -76,7 +140,7 @@
                     </div>
                 {% endif %}
             {% endwith %}
-    
+
             <form method="POST" action="{{ url_for('add_token') if not edit_token else url_for('update_token', id=edit_token['id']) }}">
                 <div class="form-group">
                     <label for="mint_address">Input Mint Address</label>
@@ -121,11 +185,12 @@
                 <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
             </form>
             </div>
-            <div class="table-back" style="margin-top: 20px; background-color: lightblue; border: 1px solid #ccc;">
-                <h2>Tracked Tokens</h2>
-                {% if tokens %}
-                <table class="table table-bordered" >
-                    <thead>
+    </div>
+    <div class="box table-back" style="padding: 20px 0; background-color: lightblue; border: 1px solid #ccc;">
+        <center><h2><b>Tracked Tokens</b></h2></center>
+            {% if tokens %}
+            <table class="table table-bordered" >
+                <thead>
                     <tr>
                         <th>Mint Address</th>
                         <th>Initial Price</th>
@@ -152,34 +217,18 @@
                                 <a href="{{ url_for('delete_token', id=token['id']) }}" class="btn btn-danger btn-sm">Delete</a>
                             </td>
                         </tr>
+
+                        <tr>
+                            <td colspan="8">
+                                <canvas id="chart-{{ token['id'] }}" height="100"></canvas>
+                            </td>
+                        </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                {% else %}
-                    <p>No tokens being tracked.</p>
-                {% endif %}
-            </div>
-        </div>
-        <div class="box side_div" style="width: 400px; background-color: lightblue;">
-            <h3 class="mb-3" style="padding: 25px 15px 0 0 ;">Token Details</h3>
-
-            <center><h5 style="padding: 20px 0;"><b>Input Mint</b></h5></center>
-            <p><strong>Name:</strong> <span id="tokenName">N/A</span></p>
-            <p><strong>Symbol:</strong> <span id="tokenSymbol">N/A</span></p>
-            <p><strong>Address:</strong> <span id="tokenAddress">N/A</span></p>
-            <p><strong>Decimal:</strong> <span id="tokenNetwork">N/A</span></p>
-<!--             <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p> -->
-            <p><strong>Price:</strong> <span id="tokenPrice">N/A</span></p>
-
-            <div id="output_token_detail" style="visibility: hidden; padding: 20px 0;">
-                <center><h5><b>Output Mint</b></h5></center>
-                <p><strong>Name:</strong> <span id="token2Name">N/A</span></p>
-                <p><strong>Symbol:</strong> <span id="token2Symbol">N/A</span></p>
-                <p><strong>Address:</strong> <span id="token2Address">N/A</span></p>
-                <p><strong>Decimal:</strong> <span id="token2Network">N/A</span></p>
-<!--                 <p><strong>Aggregator:</strong> <span id="tokenAggregator">N/A</span></p> -->
-                <p><strong>Price:</strong> <span id="token2Price">N/A</span></p>                
-            </div>
+            {% else %}
+            <p>No tokens being tracked.</p>
+            {% endif %}
         </div>
     </div>
 
@@ -189,8 +238,8 @@
            if (!mintAddress) {
             alert("Please enter a mint address.");
             return;
-          } 
-        
+          }
+
           try {
             const response = await fetch("/api/token", {
               method: "POST",
@@ -199,13 +248,13 @@
               },
               body: JSON.stringify({ mint: mintAddress })
             });
-        
+
             if (!response.ok) {
               throw new Error("Failed to fetch token details from API.");
             }
-        
-            const data = await response.json();        
-        
+
+            const data = await response.json();
+
             document.getElementById("token2Name").textContent = data.name;
             document.getElementById("token2Symbol").textContent = data.symbol;
             document.getElementById("token2Address").textContent = data.id;
@@ -223,8 +272,8 @@
            if (!mintAddress) {
             alert("Please enter a mint address.");
             return;
-          } 
-        
+          }
+
           try {
             const response = await fetch("/api/token", {
               method: "POST",
@@ -233,13 +282,13 @@
               },
               body: JSON.stringify({ mint: mintAddress })
             });
-        
+
             if (!response.ok) {
               throw new Error("Failed to fetch token details from API.");
             }
-        
-            const data = await response.json();        
-        
+
+            const data = await response.json();
+
             document.getElementById("tokenName").textContent = data.name;
             document.getElementById("tokenSymbol").textContent = data.symbol;
             document.getElementById("tokenAddress").textContent = data.id;
@@ -251,21 +300,21 @@
             console.error("Error loading token details:", error);
           }
         }
-        
-        function updatePrices() {
-            fetch('/get_prices')
-                .then(response => response.json())
-                .then(data => {
-                    Object.keys(data).forEach(tokenId => {
-                        const priceCell = document.querySelector(`.current-price[data-token-id="${tokenId}"]`);
-                        if (priceCell) {
-                            const price = data[tokenId];
-                            priceCell.textContent = price === "N/A" ? "N/A" : `$${parseFloat(price).toFixed(2)}`;
-                        }
-                    });
-                })
-                .catch(error => console.error('Error fetching prices:', error));
-        }
+
+<!--        function updatePrices() {-->
+<!--            fetch('/get_prices')-->
+<!--                .then(response => response.json())-->
+<!--                .then(data => {-->
+<!--                    Object.keys(data).forEach(tokenId => {-->
+<!--                        const priceCell = document.querySelector(`.current-price[data-token-id="${tokenId}"]`);-->
+<!--                        if (priceCell) {-->
+<!--                            const price = data[tokenId];-->
+<!--                            priceCell.textContent = price === "N/A" ? "N/A" : `$${parseFloat(price).toFixed(2)}`;-->
+<!--                        }-->
+<!--                    });-->
+<!--                })-->
+<!--                .catch(error => console.error('Error fetching prices:', error));-->
+<!--        }-->
 
         function toggleOutputMint() {
             const checked = document.getElementById('use_jupiter').checked;
@@ -322,6 +371,112 @@
         toggleInitialPrice();
         updatePrices();
         setInterval(updatePrices, 60000);
+
+        // Store chart instances to update them later
+        const chartInstances = {};
+
+        // Function to create or update a chart for a token
+        function createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, currentPrice) {
+            const canvas = document.getElementById(`chart-${tokenId}`);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const upperBoundPrice = initialPrice * (1 + upperBoundPct / 100);
+            const lowerBoundPrice = initialPrice * (1 - lowerBoundPct / 100);
+            const currentPriceValue = currentPrice === "N/A" ? null : parseFloat(currentPrice.replace('$', ''));
+
+            // Destroy existing chart if it exists
+            if (chartInstances[tokenId]) {
+                chartInstances[tokenId].destroy();
+            }
+
+            // Create new chart
+            chartInstances[tokenId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Lower Bound', 'Initial Price', 'Upper Bound'],
+                    datasets: [
+                        {
+                            label: 'Price Bounds',
+                            data: [lowerBoundPrice, initialPrice, upperBoundPrice],
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Current Price',
+                            data: currentPriceValue ? [null, currentPriceValue, null] : [],
+                            borderColor: '#28a745',
+                            pointBackgroundColor: '#28a745',
+                            pointRadius: currentPriceValue ? 5 : 0,
+                            pointHoverRadius: 7,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Price ($)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Price Points'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Modify updatePrices to also update charts
+        function updatePrices() {
+            fetch('/get_prices')
+                .then(response => response.json())
+                .then(data => {
+                    Object.keys(data).forEach(tokenId => {
+                        const priceCell = document.querySelector(`.current-price[data-token-id="${tokenId}"]`);
+                        if (priceCell) {
+                            const price = data[tokenId];
+                            priceCell.textContent = price === "N/A" ? "N/A" : `$${parseFloat(price).toFixed(2)}`;
+
+                            // Find the token data from the table
+                            const row = priceCell.closest('tr');
+                            const initialPrice = parseFloat(row.cells[1].textContent.replace('$', ''));
+                            const upperBoundPct = parseFloat(row.cells[3].textContent.replace('%', ''));
+                            const lowerBoundPct = parseFloat(row.cells[4].textContent.replace('%', ''));
+
+                            // Create or update the chart
+                            createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, price);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error fetching prices:', error));
+        }
+
+        // Initialize charts for existing tokens
+        document.querySelectorAll('.current-price').forEach(cell => {
+            const tokenId = cell.getAttribute('data-token-id');
+            const row = cell.closest('tr');
+            const initialPrice = parseFloat(row.cells[1].textContent.replace('$', ''));
+            const upperBoundPct = parseFloat(row.cells[3].textContent.replace('%', ''));
+            const lowerBoundPct = parseFloat(row.cells[4].textContent.replace('%', ''));
+            const currentPrice = cell.textContent === "Loading..." ? "N/A" : cell.textContent;
+            createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, currentPrice);
+        });
     </script>
 </body>
 </html>
