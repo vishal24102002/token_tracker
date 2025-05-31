@@ -27,7 +27,7 @@
             background-color: #f0f0f0;
             border: 1px solid #ccc;
         }
-        .container { max-width: 1000px; }
+        .container { max-width: 1200px; }
         .form-group { margin-bottom: 15px; }
         .table { margin-top: 20px; }
 
@@ -66,6 +66,11 @@
         }
 
         @media (max-width: 768px) {
+             html, body {
+                overflow: auto;
+                height: 100%;
+            }
+
           .main_container {
             flex-direction: column;
             align-items: center;
@@ -81,7 +86,7 @@
           }
 
           .table-bordered {
-            overflow-x: auto;
+            overflow-y: auto;
           }
 
           .table {
@@ -167,11 +172,11 @@
                     <input type="number" step="0.0001" class="form-control" id="initial_price" name="initial_price" value="{{ edit_token['initial_price'] if edit_token else '' }}">
                 </div>
                 <div class="form-group">
-                    <label for="upper_bound_pct">Upper Bound</label>
+                    <label for="upper_bound_pct">Upper Bound </label>
                     <input type="number" step="0.0001" class="form-control" id="upper_bound_pct" name="upper_bound_pct" required value="{{ edit_token['upper_bound_pct'] if edit_token else '' }}">
                 </div>
                 <div class="form-group">
-                    <label for="lower_bound_pct">Lower Bound</label>
+                    <label for="lower_bound_pct">Lower Bound </label>
                     <input type="number" step="0.0001" class="form-control" id="lower_bound_pct" name="lower_bound_pct" required value="{{ edit_token['lower_bound_pct'] if edit_token else '' }}">
                 </div>
                 <div class="form-group">
@@ -186,7 +191,8 @@
             </form>
             </div>
     </div>
-    <div class="box table-back" style="padding: 20px 0; background-color: lightblue; border: 1px solid #ccc;">
+        <div style="max-height: 1000px; max-width:650px">
+    <div class="box table-back" style="max-height: 1000px; max-width:100%; overflow-y: auto; overflow-x: hidden; padding: 20px 0; background-color: lightblue; border: 1px solid #ccc;">
         <center><h2><b>Tracked Tokens</b></h2></center>
             {% if tokens %}
             <table class="table table-bordered" >
@@ -205,13 +211,13 @@
                     <tbody>
                     {% for token in tokens %}
                         <tr>
-                            <td>{{ token['mint_address'][:8] }}...</td>
-                            <td>${{ token['initial_price']}}</td>
+                            <td>{{ token['mint_address'][:6] }}...</td>
+                            <td>${{ token['initial_price'] | round(2) }}</td>
                             <td class="current-price" data-token-id="{{ token['id'] }}">Loading...</td>
                             <td>{{ token['upper_bound_pct'] }}</td>
                             <td>{{ token['lower_bound_pct'] }}</td>
-                            <td>{{ token['alarm_upper']}}%</td>
-                            <td>{{ token['alarm_lower']}}%</td>
+                            <td>{{ token['alarm_upper'] | round(2) }}%</td>
+                            <td>{{ token['alarm_lower'] | round(2) }}%</td>
                             <td>
                                 <a href="{{ url_for('edit_token', id=token['id']) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <a href="{{ url_for('delete_token', id=token['id']) }}" class="btn btn-danger btn-sm">Delete</a>
@@ -229,6 +235,7 @@
             {% else %}
             <p>No tokens being tracked.</p>
             {% endif %}
+        </div>
         </div>
     </div>
 
@@ -392,57 +399,58 @@
 
             // Create new chart
             chartInstances[tokenId] = new Chart(ctx, {
-                type: 'line',
+                type: 'scatter',
                 data: {
-                    labels: ['Lower Bound', 'Initial Price', 'Upper Bound'],
-                    datasets: [
-                        {
-                            label: 'Price Bounds',
-                            data: [lowerBoundPrice, initialPrice, upperBoundPrice],
-                            borderColor: '#007bff',
-                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Current Price',
-                            data: currentPriceValue ? [null, currentPriceValue, null] : [],
-                            borderColor: '#28a745',
-                            pointBackgroundColor: '#28a745',
-                            pointRadius: currentPriceValue ? 5 : 0,
-                            pointHoverRadius: 7,
-                            showLine: false
-                        }
-                    ]
+                    datasets: currentPriceValue ? [{
+                        label: 'Current Price',
+                        data: [{ x: currentPriceValue, y: 1 }],
+                        backgroundColor: '#28a745',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        showLine: false
+                    }] : [{
+                        label: 'Current Price',
+                        data: [{ x: lowerBoundPrice, y: 1 }],
+                        backgroundColor: '#28a745',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        showLine: false
+                    }]
                 },
                 options: {
+                    animation: false,
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: {
-                            beginAtZero: false,
+                        x: {
+                            min: lowerBoundPrice,
+                            max: upperBoundPrice,
                             title: {
                                 display: true,
                                 text: 'Price ($)'
                             }
                         },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Price Points'
-                            }
+                        y: {
+                            min: 0,
+                            max: 2,
+                            display: false // hide y-axis since we only care about x
                         }
                     },
                     plugins: {
                         legend: {
                             display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `Price: $${context.parsed.x}`
+                            }
                         }
                     }
                 }
             });
         }
 
-        // Modify updatePrices to also update charts
+       // ✅ Updated updatePrices function
         function updatePrices() {
             fetch('/get_prices')
                 .then(response => response.json())
@@ -451,23 +459,23 @@
                         const priceCell = document.querySelector(`.current-price[data-token-id="${tokenId}"]`);
                         if (priceCell) {
                             const price = data[tokenId];
-                            priceCell.textContent = price === "N/A" ? "N/A" : `$${parseFloat(price).toFixed(2)}`;
+                            const formattedPrice = price === "N/A" ? "N/A" : `$${parseFloat(price).toFixed(2)}`;
+                            priceCell.textContent = formattedPrice;
 
-                            // Find the token data from the table
+                            // Also update the chart
                             const row = priceCell.closest('tr');
                             const initialPrice = parseFloat(row.cells[1].textContent.replace('$', ''));
                             const upperBoundPct = parseFloat(row.cells[3].textContent.replace('%', ''));
                             const lowerBoundPct = parseFloat(row.cells[4].textContent.replace('%', ''));
 
-                            // Create or update the chart
-                            createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, price);
+                            createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice);
                         }
                     });
                 })
                 .catch(error => console.error('Error fetching prices:', error));
         }
 
-        // Initialize charts for existing tokens
+        // ✅ Initial chart rendering
         document.querySelectorAll('.current-price').forEach(cell => {
             const tokenId = cell.getAttribute('data-token-id');
             const row = cell.closest('tr');
