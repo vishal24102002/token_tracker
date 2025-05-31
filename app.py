@@ -121,12 +121,14 @@ def check_token_prices():
             price = fetch_price(token['mint_address'], token['output_mint'])
             if price is None:
                 continue
-
-            if price >= token['alarm_upper']:
+            print(f"total price after bound {(token['alarm_upper']/100)*((token["upper_bound_pct"]/100)*token["initial_price"])}")
+            print(f"total price after bound {(token['alarm_lower']/100)*((token["lower_bound_pct"]/100)*token["initial_price"])}")
+            
+            if price >= (token['alarm_upper']/100)*((token["upper_bound_pct"]/100)*token["initial_price"]):
                 msg = f"🚨 {token['mint_address']} price ABOVE upper alarm limit: {price:.6f} ≥ {token['alarm_upper']}"
                 send_telegram_alert(msg)
 
-            elif price <= token['alarm_lower']:
+            elif price <= (token['alarm_lower']/100)*((token["lower_bound_pct"]/100)*token["initial_price"]):
                 msg = f"⚠️ {token['mint_address']} price BELOW lower alarm limit: {price:.6f} ≤ {token['alarm_lower']}"
                 send_telegram_alert(msg)
 
