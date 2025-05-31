@@ -205,13 +205,13 @@
                     <tbody>
                     {% for token in tokens %}
                         <tr>
-                            <td>{{ token['mint_address'][:6] }}...</td>
-                            <td>${{ token['initial_price'] | round(2) }}</td>
+                            <td>{{ token['mint_address'][:8] }}...</td>
+                            <td>${{ token['initial_price']}}</td>
                             <td class="current-price" data-token-id="{{ token['id'] }}">Loading...</td>
-                            <td>{{ token['upper_bound_pct'] }}%</td>
-                            <td>{{ token['lower_bound_pct'] }}%</td>
-                            <td>{{ token['alarm_upper'] | round(2) }}%</td>
-                            <td>{{ token['alarm_lower'] | round(2) }}%</td>
+                            <td>{{ token['upper_bound_pct'] }}</td>
+                            <td>{{ token['lower_bound_pct'] }}</td>
+                            <td>{{ token['alarm_upper']}}%</td>
+                            <td>{{ token['alarm_lower']}}%</td>
                             <td>
                                 <a href="{{ url_for('edit_token', id=token['id']) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <a href="{{ url_for('delete_token', id=token['id']) }}" class="btn btn-danger btn-sm">Delete</a>
