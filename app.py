@@ -20,8 +20,8 @@ RAYDIUM_API = "https://api.raydium.io/v2/main/price"
 
 # Telegram Bot Config
 TELEGRAM_BOT_TOKEN = "8066450400:AAENAonrvuB7lNXnGqZbe5jdEXxF5zYiP5g"
-TELEGRAM_CHAT_ID =  "884001334"
-# TELEGRAM_CHAT_ID =  "5249408527"
+# TELEGRAM_CHAT_ID =  "884001334"
+TELEGRAM_CHAT_ID =  "5249408527"
 
 
 
@@ -99,10 +99,14 @@ def fetch_price(mint_address, output_mint=None):
 
 # ------------------- Helper: Telegram -------------------
 
-def send_telegram_alert(message):
+def send_telegram_alert(message,delete_button):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {'chat_id': TELEGRAM_CHAT_ID, 'text': message}
+        payload = {
+            'chat_id': TELEGRAM_CHAT_ID,
+            'text': message,
+            "reply_markup": delete_button
+        }
         res = requests.post(url, data=payload)
         res.raise_for_status()
         logger.info(f"Telegram alert sent: {message}")
@@ -120,6 +124,11 @@ def check_token_prices():
         conn.close()
 
         for token in tokens:
+            delete_button = {
+                "inline_keyboard": [[
+                    {"text": "🗑️ Delete Token", "callback_data": f"delete:{token['id']}"}
+                ]]
+            }
             conn = get_db_connection()
             tokens_detail_in = conn.execute(f"SELECT * FROM history where mint_address = ?",(token['mint_address'],)).fetchall()
             tokens_detail_out = conn.execute(f"SELECT * FROM history where mint_address = ?",(token['output_mint'],)).fetchall()
@@ -132,11 +141,11 @@ def check_token_prices():
             
             if price >= (token['upper_bound_pct']-token['alarm_upper']):
                 msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
-                send_telegram_alert(msg)
+                send_telegram_alert(msg,delete_button)
 
             elif price <= (token['lower_bound_pct']+token['alarm_lower']):
                 msg = f"⚠️  input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price BELOW lower alarm limit\n Current price : {price:.6f}"
-                send_telegram_alert(msg)
+                send_telegram_alert(msg,delete_button)
 
         time.sleep(60)  # check every 60 seconds
 
@@ -397,6 +406,42 @@ def upreq(mint):
     response = requests.request("GET", url, headers=headers, data=payload)
     response=response.json()
     return response['data'][mint]['price']
+
+
+#-------------------------weebhook for bot token data handling---------------------------
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+def webhook():
+    update = request.get_json()
+
+    # User sent a message
+    if "message" in update:
+        chat_id = update["message"]["chat"]["id"]
+        # Simulate sending token with delete button
+        send_message_with_delete_button(chat_id, "token123")
+
+    # User clicked inline button
+    elif "callback_query" in update:
+        query = update["callback_query"]
+        callback_data = query["data"]
+        chat_id = query["message"]["chat"]["id"]
+        message_id = query["message"]["message_id"]
+
+        if callback_data.startswith("delete:"):
+            token_id = callback_data.split(":")[1]
+            if delete_token(token_id):
+                response_text = f"✅ Token {token_id} deleted!"
+            else:
+                response_text = f"⚠️ Token {token_id} not found."
+
+            # Edit original message to show status
+            requests.post(f"{TELEGRAM_API_URL}/editMessageText", json={
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "text": response_text
+            })
+
+    return {"ok": True}
+
 
 # ------------------- Start -------------------
 
