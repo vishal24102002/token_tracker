@@ -124,12 +124,12 @@ def check_token_prices():
             # print(f"total price after bound {(token['alarm_upper']/100)*(token["upper_bound_pct"])}")
             # print(f"total price after bound {(token['alarm_lower']/100)*(token["lower_bound_pct"])}")
             
-            if price >= (token['alarm_upper']/100)*(token["upper_bound_pct"]):
-                msg = f"🚨 {token['mint_address']} price ABOVE upper alarm limit: {price:.6f} ≥ {(token['alarm_upper']/100)*(token['upper_bound_pct'])}"
+            if price >= token['alarm_upper']:
+                msg = f"🚨 {token['mint_address']} {token['output_mint']} price ABOVE upper alarm limit: {price:.6f} ≥ {token['alarm_upper']}"
                 send_telegram_alert(msg)
 
-            elif price <= (token['alarm_lower']/100)*(token["lower_bound_pct"]):
-                msg = f"⚠️ {token['mint_address']} price BELOW lower alarm limit: {price:.6f} ≤ {(token['alarm_lower']/100)*(token['lower_bound_pct'])}"
+            elif price <= token['alarm_lower']:
+                msg = f"⚠️ {token['mint_address']} {token['output_mint']} price BELOW lower alarm limit: {price:.6f} ≤ {token['alarm_lower']}"
                 send_telegram_alert(msg)
 
         time.sleep(60)  # check every 60 seconds
@@ -277,8 +277,8 @@ def add_token():
             initial_price,
             float(request.form['upper_bound_pct']),
             float(request.form['lower_bound_pct']),
-            alarm_u,
-            alarm_l
+            float((alarm_u/100)*float(request.form['upper_bound_pct'])),
+            float((alarm_l/100)*float(request.form['lower_bound_pct']))
         ))
         conn.commit()
         conn.close()
