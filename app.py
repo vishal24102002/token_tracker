@@ -43,7 +43,8 @@ def init_db():
         conn.execute('''
             CREATE TABLE IF NOT EXISTS tokens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                token_name TEXT,
+                in_token_name TEXT,
+                out_token_name TEXT,
                 mint_address TEXT NOT NULL,
                 output_mint TEXT,
                 initial_price REAL,
@@ -275,14 +276,16 @@ def add_token():
         initial_price = float(request.form.get('initial_price', 0))
 
     token_names=get_token_name_price(mint_address)
+    token_name_out=get_token_name_price(output_mint)
 
     conn = get_db_connection()
     if l_bound<=initial_price and u_bound>=initial_price:
         conn.execute('''
-            INSERT INTO tokens (token_name, mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO tokens (in_token_name, out_token_name, mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             token_names,
+            token_name_out
             mint_address,
             output_mint,
             initial_price,
