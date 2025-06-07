@@ -483,9 +483,9 @@
         document.querySelectorAll('.current-price').forEach(cell => {
             const tokenId = cell.getAttribute('data-token-id');
             const row = cell.closest('tr');
-            const initialPrice = parseFloat(row.cells[1].textContent.replace('$', ''));
-            const upperBoundPct = parseFloat(row.cells[3].textContent.replace('%', ''));
-            const lowerBoundPct = parseFloat(row.cells[4].textContent.replace('%', ''));
+            const initialPrice = parseFloat(row.cells[2].textContent.replace('$', ''));
+            const upperBoundPct = parseFloat(row.cells[4].textContent.replace('%', ''));
+            const lowerBoundPct = parseFloat(row.cells[5].textContent.replace('%', ''));
             const currentPrice = cell.textContent === "Loading..." ? "N/A" : cell.textContent;
             createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, currentPrice);
         });
