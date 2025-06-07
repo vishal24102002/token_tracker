@@ -388,8 +388,8 @@
             if (!canvas) return;
 
             const ctx = canvas.getContext('2d');
-            const upperBoundPrice = initialPrice * (1 + upperBoundPct / 100);
-            const lowerBoundPrice = initialPrice * (1 - lowerBoundPct / 100);
+            const upperBoundPrice = upperBoundPct;
+            const lowerBoundPrice = lowerBoundPct;
             const currentPriceValue = currentPrice === "N/A" ? null : parseFloat(currentPrice.replace('$', ''));
 
             // Destroy existing chart if it exists
