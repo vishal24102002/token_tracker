@@ -285,7 +285,7 @@ def add_token():
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             token_names,
-            token_name_out
+            token_name_out,
             mint_address,
             output_mint,
             initial_price,
