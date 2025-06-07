@@ -121,8 +121,8 @@ def check_token_prices():
 
         for token in tokens:
             conn = get_db_connection()
-            tokens_detail_in = conn.execute(f"SELECT * FROM history where mint_address=={token['mint_address']}").fetchall()
-            tokens_detail_out = conn.execute(f"SELECT * FROM history where mint_address=={token['output_mint']}").fetchall()
+            tokens_detail_in = conn.execute(f"SELECT * FROM history where mint_address = ?",(token['mint_address'],)).fetchall()
+            tokens_detail_out = conn.execute(f"SELECT * FROM history where mint_address = ?",(token['output_mint'],)).fetchall()
             con.close()
             price = fetch_price(token['mint_address'], token['output_mint'])
             if price is None:
