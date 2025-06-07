@@ -200,7 +200,8 @@
             <table class="table table-bordered" >
                 <thead>
                     <tr>
-                        <th>Mint Address</th>
+                        <th>Input Token</th>
+                        <th>Output Token</th>
                         <th>Initial Price</th>
                         <th>Current Price</th>
                         <th>Upper Bound</th>
@@ -213,7 +214,8 @@
                     <tbody>
                     {% for token in tokens %}
                         <tr>
-                            <td>{{ token['mint_address'][:6] }}...</td>
+                            <td>{{ token['in_token_name'] }}...</td>
+                            <td>{{ token['out_token_name'] }}...</td>
                             <td>${{ token['initial_price'] | round(2) }}</td>
                             <td class="current-price" data-token-id="{{ token['id'] }}">Loading...</td>
                             <td>{{ token['upper_bound_pct'] }}</td>
