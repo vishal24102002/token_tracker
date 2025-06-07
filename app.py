@@ -369,7 +369,6 @@ def delete_telegram_token(id):
     conn.execute('DELETE FROM tokens WHERE id = ?', (id,))
     conn.commit()
     conn.close()
-    flash("Token deleted.")
 
 @app.route('/get_prices')
 def get_prices():
@@ -453,11 +452,14 @@ def webhook():
                 response_text = f"⚠️ Token {token_id} not found."
 
             # Edit original message to show status
-            requests.post(f"{TELEGRAM_API_URL}/editMessageText", json={
-                "chat_id": chat_id,
-                "message_id": message_id,
-                "text": response_text
-            })
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            payload = {
+                'chat_id': TELEGRAM_CHAT_ID,
+                'text': message,
+                "reply_markup": delete_button
+            }
+            res = requests.post(url, json=payload)
+            res.raise_for_status()
 
     return {"ok": True}
 
