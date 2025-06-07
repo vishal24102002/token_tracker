@@ -427,42 +427,51 @@ def upreq(mint):
 
 
 #-------------------------weebhook for bot token data handling---------------------------
-@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
-def webhook():
-    update = request.get_json()
+@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
+def telegram_webhook():
+    try:
+        update = request.get_json()
+        print("Update received:", update)
 
-    # User sent a message
-    if "message" in update:
-        chat_id = update["message"]["chat"]["id"]
-        # Simulate sending token with delete button
-        send_message_with_delete_button(chat_id, "token123")
+        # Handle message (simulate sending token)
+        if "message" in update:
+            chat_id = update["message"]["chat"]["id"]
+            send_message_with_delete_button(chat_id, token_id=123)
 
-    # User clicked inline button
-    elif "callback_query" in update:
-        query = update["callback_query"]
-        callback_data = query["data"]
-        chat_id = query["message"]["chat"]["id"]
-        message_id = query["message"]["message_id"]
+        # Handle callback_query (button press)
+        elif "callback_query" in update:
+            query = update["callback_query"]
+            callback_data = query.get("data", "")
+            chat_id = query["message"]["chat"]["id"]
+            message_id = query["message"]["message_id"]
+            callback_id = query["id"]
 
-        if callback_data.startswith("delete:"):
-            token_id = callback_data.split(":")[1]
-            if delete_telegram_token(token_id):
-                response_text = f"✅ Token {token_id} deleted!"
-            else:
-                response_text = f"⚠️ Token {token_id} not found."
+            print("Callback data:", callback_data)
 
-            # Edit original message to show status
-            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-            payload = {
-                'chat_id': TELEGRAM_CHAT_ID,
-                'text': message,
-                "reply_markup": delete_button
-            }
-            res = requests.post(url, json=payload)
-            res.raise_for_status()
+            if callback_data.startswith("delete:"):
+                try:
+                    token_id = int(callback_data.split(":")[1])
+                    success = delete_telegram_token(token_id)
+                    status = "✅ Deleted!" if success else "⚠️ Not found."
+                except Exception as e:
+                    status = f"⚠️ Error: {e}"
 
-    return {"ok": True}
+                # Edit original message
+                requests.post(f"{TELEGRAM_API_URL}/editMessageText", json={
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "text": f"Token {token_id}: {status}"
+                })
 
+            # Always answer callback to prevent timeout spinner
+            requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={
+                "callback_query_id": callback_id
+            })
+
+    except Exception as e:
+        logging.error(f"Webhook Error: {e}", exc_info=True)
+
+    return jsonify({"ok": True})
 
 # ------------------- Start -------------------
 
