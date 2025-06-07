@@ -131,11 +131,11 @@ def check_token_prices():
             # print(f"total price after bound {(token['alarm_lower']/100)*(token["lower_bound_pct"])}")
             
             if price >= (token['upper_bound_pct']-token['alarm_upper']):
-                msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token["lower_bound_pct"]}-{token["upper_bound_pct"]}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
+                msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
                 send_telegram_alert(msg)
 
             elif price <= (token['lower_bound_pct']+token['alarm_lower']):
-                msg = f"⚠️  input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token["lower_bound_pct"]}-{token["upper_bound_pct"]}\n price BELOW lower alarm limit\n Current price : {price:.6f}"
+                msg = f"⚠️  input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price BELOW lower alarm limit\n Current price : {price:.6f}"
                 send_telegram_alert(msg)
 
         time.sleep(60)  # check every 60 seconds
