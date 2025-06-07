@@ -471,14 +471,14 @@ def telegram_webhook():
                     status = f"⚠️ Error: {e}"
 
                 # Edit original message
-                requests.post(f"{TELEGRAM_API_URL}/editMessageText", json={
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
                     "chat_id": chat_id,
                     "message_id": message_id,
                     "text": f"Token {token_id}: {status}"
                 })
 
             # Always answer callback to prevent timeout spinner
-            requests.post(f"{TELEGRAM_API_URL}/answerCallbackQuery", json={
+            requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
                 "callback_query_id": callback_id
             })
 
