@@ -436,8 +436,7 @@ def send_message_with_delete_button(chat_id, token_id):
 
     requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
         "chat_id": chat_id,
-        "text": f"Token ID: {token_id}\nClick below to delete it.",
-        "reply_markup": button
+        "text": f"🚀 Sol Token Alert Bot is your real-time assistant for tracking and managing tokens on the Solana \n blockchain. Instantly get alerts for price changes, volume spikes, and suspicious activity — all directly\n in your Telegram."
     })
 
 
