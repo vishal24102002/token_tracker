@@ -427,6 +427,20 @@ def upreq(mint):
 
 
 #-------------------------weebhook for bot token data handling---------------------------
+def send_message_with_delete_button(chat_id, token_id):
+    button = {
+        "inline_keyboard": [[
+            {"text": "🗑️ Delete Token", "callback_data": f"delete:{token_id}"}
+        ]]
+    }
+
+    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
+        "chat_id": chat_id,
+        "text": f"Token ID: {token_id}\nClick below to delete it.",
+        "reply_markup": button
+    })
+
+
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def telegram_webhook():
     try:
