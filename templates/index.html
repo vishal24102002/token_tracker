@@ -103,12 +103,14 @@
         <div style="padding: 10px;">
             <div class="box previous_token" style="background-color: lightgreen; width: 500px;">
                 <center><h3 style="padding: 20px 0;"><b>History</b></h3></center>
+                <div style="height: 200px; overflow-y: auto; border: 1px solid #ccc;">
                 {% for token_his in tokens_history %}
                 <div class="token-container" style="padding:10px;">
                     <div class="token-title">{{ token_his[0] }}</div>
                     <div class="token-address">{{ token_his[1] }}</div>
                 </div>
                 {% endfor %}
+                </div>
             </div>
             <div class="box side_div" style="width: 500px; background-color: lightblue;">
                 <h3 class="mb-3" style="padding: 25px 15px 0 0 ;">Token Details</h3>
