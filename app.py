@@ -90,7 +90,6 @@ def fetch_price(mint_address, output_mint=None):
             url = f"https://api.raydium.io/v2/main/price"
             res = requests.get(url)
             res=res.json()
-            print(res)
             return res[mint_address]
     except Exception as e:
         logger.error(f"Price fetch error for {mint_address} (output: {output_mint}): {e}")
@@ -155,7 +154,6 @@ def save_token_history(token_name, mint_address):
     VALUES (?, ?)
     ''', (token_name, mint_address))
     conn.commit()
-    print(f"Saved token: {token_name}, Address: {mint_address}")
 
 def get_or_store_token_details(mint_address):
     conn = sqlite3.connect('tokens.db')
@@ -189,7 +187,6 @@ def get_or_store_token_details(mint_address):
             "decimals": decimal,
             "price": price
         }
-        print("Token found in database.")
     else:
         # Token not found, fetch from API
         url = f"https://crimson-ancient-market.solana-mainnet.quiknode.pro/7b1dfa5a6af169b6c5b4146aa362be45238935b5/addon/912/networks/solana/tokens/{mint_address}"
@@ -215,7 +212,6 @@ def get_or_store_token_details(mint_address):
             VALUES (?, ?, ?, ?)
         ''', (result["name"], result["symbol"], result["id"], result["decimals"]))
         conn.commit()
-        print("Token stored in database.")
 
     conn.close()
     return result
