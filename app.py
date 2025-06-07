@@ -126,11 +126,11 @@ def check_token_prices():
             # print(f"total price after bound {(token['alarm_lower']/100)*(token["lower_bound_pct"])}")
             
             if price >= (token["upper_bound_pct"]-token['alarm_upper']):
-                msg = f"🚨 {token['mint_address']} {token['output_mint']} price ABOVE upper alarm limit: {price:.6f} ≥ {token['alarm_upper']}"
+                msg = f"🚨 {token['mint_address']} {token['output_mint']} price ABOVE upper alarm limit: {price:.6f} ≥ {token["upper_bound_pct"]-token['alarm_upper']}"
                 send_telegram_alert(msg)
 
             elif price <= (token["lower_bound_pct"]+token['alarm_lower']):
-                msg = f"⚠️ {token['mint_address']} {token['output_mint']} price BELOW lower alarm limit: {price:.6f} ≤ {token['alarm_lower']}"
+                msg = f"⚠️ {token['mint_address']} {token['output_mint']} price BELOW lower alarm limit: {price:.6f} ≤ {token["lower_bound_pct"]+token['alarm_lower']}"
                 send_telegram_alert(msg)
 
         time.sleep(60)  # check every 60 seconds
@@ -281,7 +281,7 @@ def add_token():
         conn.close()
         flash("Token added successfully.")
     else:
-        flash(f"{l_bound} limit should be in less then the {initial_price} & {u_bound} limit should be less than {initial_price}")
+        flash(f"{l_bound} limit should be in less then the {initial_price} & {u_bound} limit should be more than {initial_price}")
     return redirect(url_for('index'))
 
 @app.route('/edit/<int:id>')
