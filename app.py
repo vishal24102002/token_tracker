@@ -363,6 +363,14 @@ def delete_token(id):
     flash("Token deleted.")
     return redirect(url_for('index'))
 
+
+def delete_telegram_token(id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM tokens WHERE id = ?', (id,))
+    conn.commit()
+    conn.close()
+    flash("Token deleted.")
+
 @app.route('/get_prices')
 def get_prices():
     conn = get_db_connection()
@@ -439,7 +447,7 @@ def webhook():
 
         if callback_data.startswith("delete:"):
             token_id = callback_data.split(":")[1]
-            if delete_token(token_id):
+            if delete_telegram_token(token_id):
                 response_text = f"✅ Token {token_id} deleted!"
             else:
                 response_text = f"⚠️ Token {token_id} not found."
