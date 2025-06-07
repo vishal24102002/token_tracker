@@ -9,6 +9,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import sqlite3
 import requests
+import json 
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import time
@@ -108,7 +109,7 @@ def send_telegram_alert(message,delete_button):
             'text': message,
             "reply_markup": delete_button
         }
-        res = requests.post(url, data=payload)
+        res = requests.post(url, json=payload)
         res.raise_for_status()
         logger.info(f"Telegram alert sent: {message}")
         flash("Alert send to telegram sucessfully")
