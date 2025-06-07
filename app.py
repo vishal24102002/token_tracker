@@ -206,7 +206,6 @@ def get_or_store_token_details(mint_address):
             "price": data.get("summary",{}).get("price_usd","")
         }
         
-        logger.info(result)
 
         # Store in DB
         cursor.execute('''
@@ -355,7 +354,6 @@ def get_prices():
         logger.error(f"Failed to fetch Raydium prices: {e}")
 
     for token in tokens:
-        logger.info(token)
         try:
             token_id = str(token['id'])
             mint_address = token['mint_address']
@@ -377,7 +375,6 @@ def get_prices():
                 else:
                     raise ValueError("Mint address not found in Raydium price list")
             prices[token_id] = round(price, 6)
-            logger.info(f"Price for token {token_id} fetched: {price}")
         except Exception as e:
             prices[token_id] = "N/A"
             logger.error(f"Error fetching price for token {token_id}: {e}")
@@ -394,7 +391,6 @@ def upreq(mint):
 
     response = requests.request("GET", url, headers=headers, data=payload)
     response=response.json()
-    logger.info(response['data'][mint]['price'])
     return response['data'][mint]['price']
 
 # ------------------- Start -------------------
