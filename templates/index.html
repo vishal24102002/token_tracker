@@ -468,9 +468,9 @@
 
                             // Also update the chart
                             const row = priceCell.closest('tr');
-                            const initialPrice = parseFloat(row.cells[1].textContent.replace('$', ''));
-                            const upperBoundPct = parseFloat(row.cells[3].textContent.replace('%', ''));
-                            const lowerBoundPct = parseFloat(row.cells[4].textContent.replace('%', ''));
+                            const initialPrice = parseFloat(row.cells[2].textContent.replace('$', ''));
+                            const upperBoundPct = parseFloat(row.cells[4].textContent.replace('%', ''));
+                            const lowerBoundPct = parseFloat(row.cells[5].textContent.replace('%', ''));
 
                             createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice);
                         }
