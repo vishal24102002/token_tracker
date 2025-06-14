@@ -198,7 +198,7 @@
                         {% for token in tokens %}
                         <tr>
                             <td colspan="9">
-                                <canvas id="chart-{{ token['id'] }}" height="150"></canvas>
+                                <canvas id="chart2-{{ token['id'] }}" height="100"></canvas>
                             </td>
                         </tr>
                         {% endfor %}
@@ -405,7 +405,7 @@
 
         // Function to create or update a chart for a token
         function createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm) {
-            const canvas = document.getElementById(`chart-${tokenId}`);
+            const canvas = document.getElementById(`${tokenId}`);
             if (!canvas) return;
 
             const ctx = canvas.getContext('2d');
@@ -520,7 +520,8 @@
                             const upperalarm = parseFloat(row.cells[6].textContent.replace('%', ''));
                             const loweralarm = parseFloat(row.cells[7].textContent.replace('%', ''));
 
-                            createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice,upperalarm,loweralarm);
+                            createOrUpdateChart(`chart-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice,upperalarm,loweralarm);
+                            createOrUpdateChart(`chart2-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice,upperalarm,loweralarm);
                         }
                     });
                 })
@@ -537,7 +538,8 @@
             const upperalarm = parseFloat(row.cells[6].textContent.replace('%', ''));
             const loweralarm = parseFloat(row.cells[7].textContent.replace('%', ''));
             const currentPrice = cell.textContent === "Loading..." ? "N/A" : cell.textContent;
-            createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm);
+            createOrUpdateChart(`chart-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm);
+            createOrUpdateChart(`chart2-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm);
         });
     </script>
 </body>
