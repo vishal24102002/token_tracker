@@ -13,6 +13,12 @@ import json
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import time
+from datetime import datetime, timedelta
+
+# Dictionary to store last alert times for each token ID
+last_alert_times = {}
+
+ALERT_COOLDOWN = timedelta(minutes=20)
 
 
 app = Flask(__name__)
@@ -119,66 +125,76 @@ def send_telegram_alert(message,delete_button):
 # ------------------- Scheduler -------------------
 
 def check_token_prices():
-    while True:
-        alert=False
+        while True:
         conn = get_db_connection()
         tokens = conn.execute('SELECT * FROM tokens').fetchall()
-        tokens_detail = conn.execute('SELECT * FROM history').fetchall()
         conn.close()
 
         for token in tokens:
+            token_id = token['id']
+            mint_address = token['mint_address']
+            output_mint = token['output_mint']
+
+            # Setup delete button
             delete_button = {
                 "inline_keyboard": [[
-                    {"text": "🗑️ Delete Token", "callback_data": f"delete:{token['id']}"}
+                    {"text": "🗑️ Delete Token", "callback_data": f"delete:{token_id}"}
                 ]]
             }
+
+            # Fetch token names
             conn = get_db_connection()
-            tokens_detail_in = conn.execute(f"SELECT * FROM history where mint_address = ?",(token['mint_address'],)).fetchall()
-            tokens_detail_out = conn.execute(f"SELECT * FROM history where mint_address = ?",(token['output_mint'],)).fetchall()
+            tokens_detail_in = conn.execute("SELECT * FROM history WHERE mint_address = ?", (mint_address,)).fetchall()
+            tokens_detail_out = conn.execute("SELECT * FROM history WHERE mint_address = ?", (output_mint,)).fetchall()
             conn.close()
-            price = fetch_price(token['mint_address'], token['output_mint'])
+
+            price = fetch_price(mint_address, output_mint)
             if price is None:
                 continue
-            # print(f"total price after bound {(token['alarm_upper']/100)*(token["upper_bound_pct"])}")
-            # print(f"total price after bound {(token['alarm_lower']/100)*(token["lower_bound_pct"])}")
-            
-            if alert==False and  price > (token['upper_bound_pct']):
+
+            now = datetime.utcnow()
+            last_alert_time = last_alert_times.get(token_id)
+
+            def can_alert():
+                return not last_alert_time or (now - last_alert_time) > ALERT_COOLDOWN
+
+            # === Price outside upper bound ===
+            if price > token['upper_bound_pct'] and can_alert():
                 try:
                     msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price range 📈 UPPER BOUND limit\n Current price : {price:.6f}"
                 except:
                     msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price 📈 than UPPER BOUND limit\n Current price : {price:.6f}"
-                
-                send_telegram_alert(msg,delete_button)
-                alert=True
+                send_telegram_alert(msg, delete_button)
+                last_alert_times[token_id] = now
 
-            elif alert==False and price < (token['lower_bound_pct']):
+            # === Price below lower bound ===
+            elif price < token['lower_bound_pct'] and can_alert():
                 try:
-                    msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price range 📉 than LOWER BOUND limit\n Current price : {price:.6f}"
+                    msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price range 📉 LOWER BOUND limit\n Current price : {price:.6f}"
                 except:
-                    msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price range 📉 than LOWER BOUND limit\n Current price : {price:.6f}"
-                
-                send_telegram_alert(msg,delete_button)
-                alert=True
-                
-            elif price <= (token['upper_bound_pct']) and price >= (token['alarm_upper']):
+                    msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price range 📉 LOWER BOUND limit\n Current price : {price:.6f}"
+                send_telegram_alert(msg, delete_button)
+                last_alert_times[token_id] = now
+
+            # === Between alarm_upper and upper_bound_pct ===
+            elif token['alarm_upper'] <= price <= token['upper_bound_pct'] and can_alert():
                 try:
-                    msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
+                    msg = f"⚠️ input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
                 except:
-                    msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
-                
-                send_telegram_alert(msg,delete_button)
-                alert=False
+                    msg = f"⚠️ input token : {tokens_detail_in[0]['token_name']}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
+                send_telegram_alert(msg, delete_button)
+                last_alert_times[token_id] = now
 
-            elif price >= (token['lower_bound_pct']) and  price <= (token['alarm_lower']):
+            # === Between lower_bound_pct and alarm_lower ===
+            elif token['lower_bound_pct'] <= price <= token['alarm_lower'] and can_alert():
                 try:
-                    msg = f"⚠️  input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price BELOW lower alarm limit\n Current price : {price:.6f}"
+                    msg = f"⚠️ input token : {tokens_detail_in[0]['token_name']}\n output token : {tokens_detail_out[0]['token_name']}\n price BELOW lower alarm limit\n Current price : {price:.6f}"
                 except:
-                    msg = f"⚠️  input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price BELOW lower alarm limit\n Current price : {price:.6f}"                   
-                send_telegram_alert(msg,delete_button)
-                alert=False
+                    msg = f"⚠️ input token : {tokens_detail_in[0]['token_name']}\n price BELOW lower alarm limit\n Current price : {price:.6f}"
+                send_telegram_alert(msg, delete_button)
+                last_alert_times[token_id] = now
 
-        time.sleep(60)  # check every 60 seconds
-
+        time.sleep(60)
 def get_token_name_price(contractor: str):
     # If not in cache, fetch from API
     url = f"https://crimson-ancient-market.solana-mainnet.quiknode.pro/7b1dfa5a6af169b6c5b4146aa362be45238935b5/addon/912/networks/solana/tokens/{contractor}"
