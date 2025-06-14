@@ -401,6 +401,9 @@
                 chartInstances[tokenId].destroy();
             }
 
+            console.log("upperalarm:", upperalarm, "loweralarm:", loweralarm);
+
+
             // Create new chart
             chartInstances[tokenId] = new Chart(ctx, {
                 type: 'scatter',
