@@ -218,6 +218,7 @@
             <div id="chart-container" class="chart-grid">
                 {% if tokens %}
                     {% for token in tokens %}
+                            <p><b>{{ token['in_token_name'] }} - {{ token['out_token_name'] }}</b></p>
                             <canvas id="chart2-{{ token['id'] }}" height="100"></canvas>
                     {% endfor %}
                 {% else %}
