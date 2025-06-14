@@ -37,6 +37,20 @@
             gap: 20px;
         }
 
+        .chart-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 100%;
+        }
+        
+        .chart-grid canvas {
+            width: 300px;
+            height: 150px;
+            flex: 1 1 auto;
+        }
+
         .table {
             width: 100%;
             border-collapse: separate;
@@ -201,19 +215,11 @@
                 </div>
                 <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
             </form>
-            <div class="summary">
+            <div id="chart-container" class="chart-grid">
                 {% if tokens %}
-                <table>
-                    <tbody>
-                        {% for token in tokens %}
-                        <tr>
-                            <td colspan="9">
-                                <canvas id="chart2-{{ token['id'] }}" height="100"></canvas>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                    {% for token in tokens %}
+                            <canvas id="chart2-{{ token['id'] }}" height="100"></canvas>
+                    {% endfor %}
                 {% else %}
                 <p>No tokens being tracked.</p>
                 {% endif %}
