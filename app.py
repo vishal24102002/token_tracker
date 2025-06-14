@@ -125,7 +125,7 @@ def send_telegram_alert(message,delete_button):
 # ------------------- Scheduler -------------------
 
 def check_token_prices():
-        while True:
+    while True:
         conn = get_db_connection()
         tokens = conn.execute('SELECT * FROM tokens').fetchall()
         conn.close()
