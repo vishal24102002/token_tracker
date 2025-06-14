@@ -191,17 +191,23 @@
                 </div>
                 <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
             </form>
-                <div class="summary">
-                    <table>
-                        <tbody>
-                            <tr>
-                                <td colspan="9">
-                                    <canvas id="chart-{{ token['id'] }}" height="150"></canvas>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="summary">
+                {% if tokens %}
+                <table>
+                    <tbody>
+                        {% for token in tokens %}
+                        <tr>
+                            <td colspan="9">
+                                <canvas id="chart-{{ token['id'] }}" height="150"></canvas>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No tokens being tracked.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
         <div style="max-height: 1000px; max-width:650px">
