@@ -424,15 +424,15 @@
             const currentPriceValue = currentPrice === "N/A" ? null : parseFloat(currentPrice.replace('$', ''));
 
             // Destroy existing chart if it exists
-            if (chartInstances[tokenId]) {
-                chartInstances[tokenId].destroy();
+            if (chartInstances[canvas.id]) {
+                chartInstances[canvas.id].destroy();
             }
 
             console.log("upperalarm:", upperalarm, "loweralarm:", loweralarm);
 
 
             // Create new chart
-            chartInstances[tokenId] = new Chart(ctx, {
+            chartInstances[canvas.id] = new Chart(ctx, {
                 type: 'scatter',
                 data: {
                     datasets: currentPriceValue ? [{
