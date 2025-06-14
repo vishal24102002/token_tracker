@@ -412,6 +412,7 @@
 
         // Store chart instances to update them later
         const chartInstances = {};
+        const chartInstances2 = {};
 
         // Function to create or update a chart for a token
         function createOrUpdateChart(tokenId, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm) {
@@ -424,15 +425,108 @@
             const currentPriceValue = currentPrice === "N/A" ? null : parseFloat(currentPrice.replace('$', ''));
 
             // Destroy existing chart if it exists
-            if (chartInstances[canvas.id]) {
-                chartInstances[canvas.id].destroy();
+            if (chartInstances[tokenId]) {
+                chartInstances[tokenId].destroy();
             }
 
             console.log("upperalarm:", upperalarm, "loweralarm:", loweralarm);
 
 
             // Create new chart
-            chartInstances[canvas.id] = new Chart(ctx, {
+            chartInstances[tokenId] = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: currentPriceValue ? [{
+                        label: 'Current Price',
+                        data: [{ x: currentPriceValue, y: 1 }],
+                        backgroundColor: '#28a745',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        showLine: false
+                    }] : [{
+                        label: 'Current Price',
+                        data: [{ x: lowerBoundPrice, y: 1 }],
+                        backgroundColor: '#28a745',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        showLine: false
+                    }]
+                },
+                options: {
+                    animation: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            min: lowerBoundPrice,
+                            max: upperBoundPrice,
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Price ($)'
+                            }
+                        },
+                        y: {
+                           display: false// hide y-axis since we only care about x
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                              alarmUpper: {
+                                type: 'line',
+                                xMin: upperalarm,
+                                xMax: upperalarm,
+                                borderColor: 'red',
+                                borderWidth: 2,
+                                label: {
+                                  content: 'Alarm Upper',
+                                  position: 'top'
+                                }
+                              },
+                              alarmLower: {
+                                type: 'line',
+                                xMin: loweralarm,
+                                xMax: loweralarm,
+                                borderColor: 'red',
+                                borderWidth: 2,
+                                label: {
+                                  content: 'Alarm Lower',
+                                  position: 'top'
+                                }
+                              }
+                            }
+                        },
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `Price: $${context.parsed.x}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createOrUpdateChart1(tokenId, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm) {
+            const canvas = document.getElementById(`${tokenId}`);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const upperBoundPrice = upperBoundPct;
+            const lowerBoundPrice = lowerBoundPct;
+            const currentPriceValue = currentPrice === "N/A" ? null : parseFloat(currentPrice.replace('$', ''));
+
+            // Destroy existing chart if it exists
+            if (chartInstances[tokenId]) {
+                chartInstances[tokenId].destroy();
+            }
+
+            // Create new chart
+            chartInstances2[tokenId] = new Chart(ctx, {
                 type: 'scatter',
                 data: {
                     datasets: currentPriceValue ? [{
@@ -531,7 +625,7 @@
                             const loweralarm = parseFloat(row.cells[7].textContent.replace('%', ''));
 
                             createOrUpdateChart(`chart-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice,upperalarm,loweralarm);
-                            createOrUpdateChart(`chart2-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice,upperalarm,loweralarm);
+                            createOrUpdateChart1(`chart2-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, formattedPrice,upperalarm,loweralarm);
                         }
                     });
                 })
@@ -549,7 +643,7 @@
             const loweralarm = parseFloat(row.cells[7].textContent.replace('%', ''));
             const currentPrice = cell.textContent === "Loading..." ? "N/A" : cell.textContent;
             createOrUpdateChart(`chart-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm);
-            createOrUpdateChart(`chart2-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm);
+            createOrUpdateChart1(`chart2-${tokenId}`, initialPrice, upperBoundPct, lowerBoundPct, currentPrice,upperalarm,loweralarm);
         });
     </script>
 </body>
