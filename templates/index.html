@@ -27,27 +27,32 @@
             background-color: #f0f0f0;
             border: 1px solid #ccc;
         }
-        .container { max-width: 900px; }
+        .container { max-width: 1100px; }
         .form-group { margin-bottom: 15px; }
         .table { margin-top: 20px; }
         .vertical{
             display: flex;
 /*             align-items: flex-start; /* or 'center' if you want vertical centering */
-/*             justify-content: space-between; /* spacing between the two boxes */ 
+/*             justify-content: space-between; /* spacing between the two boxes */
             gap: 20px;
         }
 
         .chart-grid {
-            display: flex;
-            flex-wrap: wrap;
-/*             align-items: 'center'; */
-            justify-content: center;
-            gap: 20px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            margin-top: 10px;
         }
-        
-        .chart-grid table {
-            height: 100px;
-            flex: 1 1 auto;
+
+        .chart-box {
+            background: #fff;
+            border: 1px solid #ddd;
+            height: 180px; /* ✅ Constrain height */
+            overflow: hidden;
+        }
+
+        .chart-box canvas {
+            width: 100% !important;
+            height: 100px !important;  /* ✅ Fix height explicitly */
         }
 
         .table {
@@ -215,26 +220,12 @@
                 <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
             </form>
             <div id="chart-container" class="chart-grid">
-                {% if tokens %}
-                <table>
-                    <tbody>
-                    {% for token in tokens %}
-                        <tr>
-                           <td>
-                               <p><b>{{ token['in_token_name'] }} - {{ token['out_token_name'] }}</b></p>
-                           </td> 
-                        </tr>
-                        <tr>
-                            <td colspan="9">
-                            <canvas id="chart2-{{ token['id'] }}" height="100"></canvas>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <p>No tokens being tracked.</p>
-                {% endif %}
+              {% for token in tokens %}
+                <div class="chart-box">
+                    <p><b>{{ token['in_token_name'] }} - {{ token['out_token_name'] }}</b></p>
+                    <canvas id="chart2-{{ token['id'] }}"></canvas>
+                </div>
+              {% endfor %}
             </div>
         </div>
     </div>
@@ -446,9 +437,6 @@
                 chartInstances[canvas.id].destroy();
             }
 
-            console.log("upperalarm:", upperalarm, "loweralarm:", loweralarm);
-
-
             // Create new chart
             chartInstances[canvas.id] = new Chart(ctx, {
                 type: 'scatter',
@@ -528,7 +516,7 @@
             });
         }
 
-        
+
        // ✅ Updated updatePrices function
         function updatePrices() {
             fetch('/get_prices')
