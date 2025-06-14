@@ -149,6 +149,7 @@ def check_token_prices():
                     msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price 📈 than UPPER BOUND limit\n Current price : {price:.6f}"
                 
                 send_telegram_alert(msg,delete_button)
+                alert=True
 
             elif alert==False and price < (token['lower_bound_pct']):
                 try:
@@ -157,6 +158,7 @@ def check_token_prices():
                     msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price range 📉 than LOWER BOUND limit\n Current price : {price:.6f}"
                 
                 send_telegram_alert(msg,delete_button)
+                alert=True
                 
             elif price <= (token['upper_bound_pct']) and price >= (token['alarm_upper']):
                 try:
@@ -165,6 +167,7 @@ def check_token_prices():
                     msg = f"🚨 input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price ABOVE upper alarm limit\n Current price : {price:.6f}"
                 
                 send_telegram_alert(msg,delete_button)
+                alert=False
 
             elif price >= (token['lower_bound_pct']) and  price <= (token['alarm_lower']):
                 try:
@@ -172,6 +175,7 @@ def check_token_prices():
                 except:
                     msg = f"⚠️  input token : {tokens_detail_in[0]['token_name']}\n price limit : {token['lower_bound_pct']}-{token['upper_bound_pct']}\n price BELOW lower alarm limit\n Current price : {price:.6f}"                   
                 send_telegram_alert(msg,delete_button)
+                alert=False
 
         time.sleep(60)  # check every 60 seconds
 
