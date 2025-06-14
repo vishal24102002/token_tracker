@@ -37,10 +37,6 @@
             gap: 20px;
         }
 
-        .form-control{
-             width: 180px;
-        }
-
         .table {
             width: 100%;
             border-collapse: separate;
@@ -186,21 +182,21 @@
                 <div class="vertical">
                     <div class="form-group">
                         <label for="upper_bound_pct">Upper Bound </label>
-                        <input type="number" step="0.0001" class="form-control" id="upper_bound_pct" name="upper_bound_pct" required value="{{ edit_token['upper_bound_pct'] if edit_token else '' }}">
+                        <input type="number" style="width: 300px;" step="0.0001" class="form-control" id="upper_bound_pct" name="upper_bound_pct" required value="{{ edit_token['upper_bound_pct'] if edit_token else '' }}">
                     </div>
                     <div class="form-group">
                         <label for="lower_bound_pct">Lower Bound </label>
-                        <input type="number" step="0.0001" class="form-control" id="lower_bound_pct" name="lower_bound_pct" required value="{{ edit_token['lower_bound_pct'] if edit_token else '' }}">
+                        <input type="number" style="width: 300px;" step="0.0001" class="form-control" id="lower_bound_pct" name="lower_bound_pct" required value="{{ edit_token['lower_bound_pct'] if edit_token else '' }}">
                     </div>
                 </div>
                 <div class="vertical">
                     <div class="form-group">
                         <label for="alarm_upper">Alarm Upper Bound </label>
-                        <input type="number" step="0.0001" class="form-control" id="alarm_upper" name="alarm_upper" required value="{{ edit_token['alarm_upper'] if edit_token else '' }}">
+                        <input type="number" style="width: 300px;" step="0.0001" class="form-control" id="alarm_upper" name="alarm_upper" required value="{{ edit_token['alarm_upper'] if edit_token else '' }}">
                     </div>
                     <div class="form-group">
                         <label for="alarm_lower">Alarm Lower Bound </label>
-                        <input type="number" step="0.0001" class="form-control" id="alarm_lower" name="alarm_lower" required value="{{ edit_token['alarm_lower'] if edit_token else '' }}">
+                        <input type="number" style="width: 300px;" step="0.0001" class="form-control" id="alarm_lower" name="alarm_lower" required value="{{ edit_token['alarm_lower'] if edit_token else '' }}">
                     </div>
                 </div>
                 <button id="tokenButton" type="submit" class="btn btn-primary">{{ 'Update Token' if edit_token else 'Add Token' }}</button>
