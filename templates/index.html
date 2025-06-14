@@ -217,10 +217,21 @@
             </form>
             <div id="chart-container" class="chart-grid">
                 {% if tokens %}
+                <table>
+                    <tbody>
                     {% for token in tokens %}
-                            <p><b>{{ token['in_token_name'] }} - {{ token['out_token_name'] }}</b></p>
+                        <tr>
+                           <td>
+                               <p><b>{{ token['in_token_name'] }} - {{ token['out_token_name'] }}</b></p>
+                           </td> 
+                        </tr>
+                        <tr>
+                            <td colspan="9">
                             <canvas id="chart2-{{ token['id'] }}" height="100"></canvas>
+                            </td>
+                        </tr>
                     {% endfor %}
+                    </tbody>
                 {% else %}
                 <p>No tokens being tracked.</p>
                 {% endif %}
