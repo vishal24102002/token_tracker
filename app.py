@@ -299,8 +299,8 @@ def add_token():
             initial_price,
             float(request.form['upper_bound_pct']),
             float(request.form['lower_bound_pct']),
-            float((alarm_u/100)*float(request.form['upper_bound_pct'])),
-            float((alarm_l/100)*float(request.form['lower_bound_pct']))
+            float(alarm_u),
+            float(alarm_l)
         ))
         conn.commit()
         conn.close()
