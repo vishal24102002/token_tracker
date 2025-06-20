@@ -8,6 +8,7 @@
 # import pytz
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import sqlite3
+import mysql.connector
 import requests
 import json 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -30,6 +31,13 @@ TELEGRAM_BOT_TOKEN = "8066450400:AAENAonrvuB7lNXnGqZbe5jdEXxF5zYiP5g"
 TELEGRAM_CHAT_ID =  "884001334"
 # TELEGRAM_CHAT_ID =  "5249408527"
 
+db_config = {
+    'user': 'vishal6596',  # Replace with your PythonAnywhere MySQL username
+    'password': '24102002Vishal',  # Replace with your MySQL password
+    'host': 'vishal6596.mysql.pythonanywhere-services.com',  # Replace with your MySQL hostname
+    'database': 'vishal6596$db_token_tracker',  # Replace with your MySQL database name
+}
+
 
 
 # Logging setup
@@ -38,47 +46,50 @@ logger = logging.getLogger(__name__)
 
 # ------------------- Database -------------------
 
+# def get_db_connection():
+#     conn = sqlite3.connect('tokens.db')
+#     conn.row_factory = sqlite3.Row
+#     return conn
+
 def get_db_connection():
-    conn = sqlite3.connect('tokens.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+    return mysql.connector.connect(**db_config)
 
 
 
-def init_db():
-    with get_db_connection() as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS tokens (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                in_token_name TEXT,
-                out_token_name TEXT,
-                mint_address TEXT NOT NULL,
-                output_mint TEXT,
-                initial_price REAL,
-                upper_bound_pct REAL NOT NULL,
-                lower_bound_pct REAL NOT NULL,
-                alarm_upper REAL NOT NULL,
-                alarm_lower REAL NOT NULL
-            );
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                token_name TEXT NOT NULL,
-                mint_address TEXT NOT NULL,
-                timestamp TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS token_details (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                symbol TEXT,
-                address TEXT UNIQUE,
-                decimal INTEGER
-            )
-        ''')
-    logger.info("Database initialized.")
+# def init_db():
+#     with get_db_connection() as conn:
+#         conn.execute('''
+#             CREATE TABLE IF NOT EXISTS tokens (
+#                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+#                 in_token_name TEXT,
+#                 out_token_name TEXT,
+#                 mint_address TEXT NOT NULL,
+#                 output_mint TEXT,
+#                 initial_price REAL,
+#                 upper_bound_pct REAL NOT NULL,
+#                 lower_bound_pct REAL NOT NULL,
+#                 alarm_upper REAL NOT NULL,
+#                 alarm_lower REAL NOT NULL
+#             );
+#         ''')
+#         conn.execute('''
+#             CREATE TABLE IF NOT EXISTS history (
+#                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+#                 token_name TEXT NOT NULL,
+#                 mint_address TEXT NOT NULL,
+#                 timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+#             )
+#         ''')
+#         conn.execute('''
+#             CREATE TABLE IF NOT EXISTS token_details (
+#                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+#                 name TEXT,
+#                 symbol TEXT,
+#                 address TEXT UNIQUE,
+#                 decimal INTEGER
+#             )
+#         ''')
+#     logger.info("Database initialized.")
 
 # ------------------- Helper: Price Fetching -------------------
 
@@ -211,14 +222,16 @@ def get_token_name_price(contractor: str):
 
 def save_token_history(token_name, mint_address):
     conn = get_db_connection()
-    conn.execute('''
-    INSERT INTO history (token_name, mint_address)
-    VALUES (?, ?)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO history (token_name, mint_address) VALUES (%s, %s)
     ''', (token_name, mint_address))
     conn.commit()
+    cursor.close()
+    conn.close()
 
 def get_or_store_token_details(mint_address):
-    conn = sqlite3.connect('tokens.db')
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     raydium_response = requests.get("https://api.raydium.io/v2/main/price").json()
@@ -236,18 +249,17 @@ def get_or_store_token_details(mint_address):
         price=response.get("data",{}).get(mint_address,{}).get("price","N/A")
     
     # Check if token already exists
-    cursor.execute("SELECT name, symbol, address, decimal FROM token_details WHERE address = ?", (mint_address,))
+    cursor.execute("SELECT name, symbol, address, `decimal` FROM token_details WHERE address = %s", (mint_address,))
     row = cursor.fetchone()
 
     if row:
-        # Token found in DB
         name, symbol, address, decimal = row
         result = {
             "name": name,
             "symbol": symbol,
             "id": address,
             "decimals": decimal,
-            "price": price
+            "price": "N/A"
         }
     else:
         # Token not found, fetch from API
@@ -269,12 +281,11 @@ def get_or_store_token_details(mint_address):
 
         # Store in DB
         cursor.execute('''
-            INSERT OR IGNORE INTO token_details (name, symbol, address, decimal)
-            VALUES (?, ?, ?, ?)
+            INSERT IGNORE INTO token_details (name, symbol, address, `decimal`)
+            VALUES (%s, %s, %s, %s)
         ''', (result["name"], result["symbol"], result["id"], result["decimals"]))
-        conn.commit()
-
-    conn.close()
+        
+    conn.commit()
     return result
 
 
@@ -525,7 +536,7 @@ def telegram_webhook():
 
 # ------------------- Start -------------------
 
-init_db()
+# init_db()
 scheduler = BackgroundScheduler()
 scheduler.add_job(check_token_prices, 'interval', minutes=1)
 scheduler.start()
