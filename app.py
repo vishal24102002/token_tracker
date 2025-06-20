@@ -422,7 +422,7 @@ def delete_token(id):
 def delete_telegram_token(id):
     conn = get_db_connection()
     cursor=conn.cursor(dictionary=True)
-    cursor.execute('DELETE FROM tokens WHERE id = ?', (id,))
+    cursor.execute('DELETE FROM tokens WHERE id = %s', (id,))
     conn.commit()
     cursor.close()
 
