@@ -138,7 +138,8 @@ def send_telegram_alert(message,delete_button):
 def check_token_prices():
     while True:
         conn = get_db_connection()
-        tokens = conn.execute('SELECT * FROM tokens').fetchall()
+        cursor=conn.cursor(dictionary=True)
+        tokens = cursor.execute('SELECT * FROM tokens').fetchall()
         conn.close()
 
         for token in tokens:
@@ -155,9 +156,10 @@ def check_token_prices():
 
             # Fetch token names
             conn = get_db_connection()
-            tokens_detail_in = conn.execute("SELECT * FROM history WHERE mint_address = ?", (mint_address,)).fetchall()
-            tokens_detail_out = conn.execute("SELECT * FROM history WHERE mint_address = ?", (output_mint,)).fetchall()
-            conn.close()
+            cursor=conn.cursor(dictionary=True)
+            tokens_detail_in = cursor.execute("SELECT * FROM history WHERE mint_address = %s", (mint_address,)).fetchall()
+            tokens_detail_out = cursor.execute("SELECT * FROM history WHERE mint_address = %s", (output_mint,)).fetchall()
+            cursor.close()
 
             price = fetch_price(mint_address, output_mint)
             if price is None:
@@ -222,7 +224,7 @@ def get_token_name_price(contractor: str):
 
 def save_token_history(token_name, mint_address):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor=conn.cursor(dictionary=True)
     cursor.execute('''
         INSERT INTO history (token_name, mint_address) VALUES (%s, %s)
     ''', (token_name, mint_address))
@@ -307,9 +309,10 @@ def handle_token_request():
 @app.route('/')
 def index():
     conn = get_db_connection()
-    tokens = conn.execute('SELECT * FROM tokens').fetchall()
-    data = conn.execute('SELECT token_name, mint_address FROM history').fetchall()
-    conn.close()
+    cursor=conn.cursor(dictionary=True)
+    tokens = cursor.execute('SELECT * FROM tokens').fetchall()
+    data = cursor.execute('SELECT token_name, mint_address FROM history').fetchall()
+    cursor.close()
     return render_template('index.html', tokens=tokens, edit_token=None, tokens_history=data)
 
 @app.route('/add', methods=['POST'])
@@ -335,10 +338,11 @@ def add_token():
     token_name_out=get_token_name_price(output_mint)
 
     conn = get_db_connection()
+    cursor=conn.cursor(dictionary=True)
     if l_bound<=initial_price and u_bound>=initial_price:
-        conn.execute('''
+        cursor.execute('''
             INSERT INTO tokens (in_token_name, out_token_name, mint_address, output_mint, initial_price, upper_bound_pct, lower_bound_pct, alarm_upper, alarm_lower)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             token_names,
             token_name_out,
@@ -351,7 +355,7 @@ def add_token():
             float(alarm_l)
         ))
         conn.commit()
-        conn.close()
+        cursor.close()
         flash("Token added successfully.")
     else:
         flash(f"{l_bound} limit should be in less then the {initial_price} & {u_bound} limit should be more than {initial_price}")
@@ -360,9 +364,10 @@ def add_token():
 @app.route('/edit/<int:id>')
 def edit_token(id):
     conn = get_db_connection()
-    token = conn.execute('SELECT * FROM tokens WHERE id = ?', (id,)).fetchone()
-    tokens = conn.execute('SELECT * FROM tokens').fetchall()
-    conn.close()
+    cursor=conn.cursor(dictionary=True)
+    token = cursor.execute('SELECT * FROM tokens WHERE id = %s', (id,)).fetchone()
+    tokens = cursor.execute('SELECT * FROM tokens').fetchall()
+    cursor.close()
     return render_template('index.html', edit_token=token, tokens=tokens)
 
 @app.route('/update/<int:id>', methods=['POST'])
@@ -382,11 +387,12 @@ def update_token(id):
         initial_price = float(initial_price)
 
     conn = get_db_connection()
-    conn.execute('''
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute('''
         UPDATE tokens SET
-            mint_address = ?, output_mint = ?, initial_price = ?, upper_bound_pct = ?,
-            lower_bound_pct = ?, alarm_upper = ?, alarm_lower = ?
-        WHERE id = ?
+            mint_address = %s, output_mint = %s, initial_price = %s, upper_bound_pct = %s,
+            lower_bound_pct = %s, alarm_upper = %s, alarm_lower = %s
+        WHERE id = %s
     ''', (
         mint_address,
         output_mint,
@@ -405,24 +411,27 @@ def update_token(id):
 @app.route('/delete/<int:id>')
 def delete_token(id):
     conn = get_db_connection()
-    conn.execute('DELETE FROM tokens WHERE id = ?', (id,))
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute('DELETE FROM tokens WHERE id = %s', (id,))
     conn.commit()
-    conn.close()
+    cursor.close()
     flash("Token deleted.")
     return redirect(url_for('index'))
 
 
 def delete_telegram_token(id):
     conn = get_db_connection()
-    conn.execute('DELETE FROM tokens WHERE id = ?', (id,))
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute('DELETE FROM tokens WHERE id = ?', (id,))
     conn.commit()
-    conn.close()
+    cursor.close()
 
 @app.route('/get_prices')
 def get_prices():
     conn = get_db_connection()
-    tokens = conn.execute('SELECT id, mint_address, output_mint FROM tokens').fetchall()
-    conn.close()
+    cursor=conn.cursor(dictionary=True)
+    tokens = cursor.execute('SELECT id, mint_address, output_mint FROM tokens').fetchall()
+    cursor.close()
     prices = {}
 
     try:
