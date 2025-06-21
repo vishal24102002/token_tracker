@@ -251,7 +251,7 @@ def get_or_store_token_details(mint_address):
         price=response.get("data",{}).get(mint_address,{}).get("price","N/A")
     
     # Check if token already exists
-    cursor.execute("SELECT name, symbol, address, `decimal` FROM token_details WHERE address = %s", (mint_address,))
+    cursor.execute("SELECT name, symbol, address, `decimals` FROM token_details WHERE address = %s", (mint_address,))
     row = cursor.fetchone()
 
     if row:
@@ -283,7 +283,7 @@ def get_or_store_token_details(mint_address):
 
         # Store in DB
         cursor.execute('''
-            INSERT IGNORE INTO token_details (name, symbol, address, `decimal`)
+            INSERT IGNORE INTO token_details (name, symbol, address, `decimals`)
             VALUES (%s, %s, %s, %s)
         ''', (result["name"], result["symbol"], result["id"], result["decimals"]))
         
