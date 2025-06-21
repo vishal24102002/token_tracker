@@ -33,7 +33,7 @@ TELEGRAM_CHAT_ID =  "884001334"
 
 db_config = {
     'user': 'vishal6596',  # Replace with your PythonAnywhere MySQL username
-    'password': '24102002Vishal',  # Replace with your MySQL password
+    'password': '24102002vishal',  # Replace with your MySQL password
     'host': 'vishal6596.mysql.pythonanywhere-services.com',  # Replace with your MySQL hostname
     'database': 'vishal6596$db_token_tracker',  # Replace with your MySQL database name
 }
