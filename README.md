@@ -15,12 +15,11 @@ Python · Flask · MySQL · CoinGecko API · Telegram Bot API · Render Deployme
 
 ---
 
-[![🚀 Open Project](https://img.shields.io/badge/🚀%20Open%20Project-blue?style=for-the-badge&logo=appveyor)](https://github.com/vishal24102002/token_tracker)
+[![🚀 Open Project](https://img.shields.io/badge/🚀%20Open%20Project-blue?style=for-the-badge&logo=appveyor)](https://token-tracker-lwpy.onrender.com/)
 
-## Screenshot
-<img src="/tracker.jpg" style="max-width: 100%; height: 300px; margin-bottom: 40px;">
+## 📸 Demo
 
-<a href="https://token-tracker-lwpy.onrender.com/"><b> Token-tracker Live link </b></a> 
+![Demo Screenshot](/tracker.jpg)
 
 ---
 
